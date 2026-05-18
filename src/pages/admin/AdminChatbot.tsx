@@ -24,9 +24,9 @@ interface DraftExam {
   progress: number;
 }
 
-interface Msg { 
-  role: 'user' | 'ai'; 
-  text: string; 
+interface Msg {
+  role: 'user' | 'ai';
+  text: string;
   hasDraft?: boolean;
 }
 
@@ -39,12 +39,12 @@ const AdminChatbot: React.FC = () => {
   const [draftExam, setDraftExam] = useState<DraftExam | null>(null);
   const [publishing, setPublishing] = useState(false);
   const [highlightDraft, setHighlightDraft] = useState(false);
-  
+
   const bottomRef = useRef<HTMLDivElement>(null);
   const draftRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => { 
-    bottomRef.current?.scrollIntoView({ behavior: 'smooth' }); 
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
   const handleSend = async () => {
@@ -57,23 +57,89 @@ const AdminChatbot: React.FC = () => {
     try {
       const res = await chatbotApi.chat(userMsg);
       const data = res.data;
-      const aiText = data.message || data.response || 'Tôi đang xử lý yêu cầu của bạn...';
+      
+      let aiText = data.message || data.response || 'Tôi đang xử lý yêu cầu của bạn...';
+      let hasDraft = data.hasDraft;
+      let questions = data.questions;
+      let title = data.title;
+      let category = data.category;
+      let level = data.level;
+      let timeLimit = data.timeLimit;
+      let totalScore = data.totalScore;
+      let examId = data.examId;
 
-      setMessages(prev => [...prev, { role: 'ai', text: aiText, hasDraft: data.hasDraft }]);
+      // Robust check: if the message is a raw JSON string
+      if (typeof aiText === 'string' && aiText.trim().startsWith('{')) {
+        try {
+          const start = aiText.indexOf('{');
+          const end = aiText.lastIndexOf('}');
+          if (start !== -1 && end !== -1) {
+            const jsonStr = aiText.substring(start, end + 1);
+            const parsedData = JSON.parse(jsonStr);
+            if (parsedData) {
+              aiText = parsedData.message || parsedData.response || `Tôi đã soạn thảo xong đề thi "${parsedData.title || 'mới'}". Bạn có thể xem bản thảo ở khung bên phải.`;
+              hasDraft = true;
+              questions = parsedData.questions;
+              title = parsedData.title;
+              category = parsedData.category;
+              level = parsedData.level;
+              timeLimit = parsedData.timeLimit;
+              totalScore = parsedData.totalScore;
+              examId = parsedData.examId;
+            }
+          }
+        } catch (jsonErr) {
+          console.error("Frontend failed to parse raw JSON message:", jsonErr);
+          // Recover title for a polished UX even if JSON parsing failed
+          const titleMatch = aiText.match(/"title"\s*:\s*"([^"]+)"/);
+          if (titleMatch && titleMatch[1]) {
+            aiText = `Tôi đã soạn thảo xong đề thi "${titleMatch[1]}". Bạn có thể xem bản thảo ở khung bên phải.`;
+          } else {
+            aiText = "Tôi đã soạn thảo xong đề thi theo yêu cầu. Hãy xem bản thảo ở khung bên phải!";
+          }
+          hasDraft = true;
 
-      // If AI generated an exam draft (intent is create_exam)
-      if (data.intent === 'create_exam' && data.questions) {
-        // Start simulation for progress bar visual effect
+          // Attempt to extract questions from the broken/truncated JSON using regex
+          try {
+            const questionsMatch = aiText.match(/"questions"\s*:\s*\[([\s\S]*?)\]/);
+            if (questionsMatch && questionsMatch[1]) {
+              const qBlock = questionsMatch[1];
+              const qRegex = /\{\s*"text"\s*:\s*"([^"]+)"[\s\S]*?"options"\s*:\s*\[([\s\S]*?)\][\s\S]*?"answer"\s*:\s*"([^"]+)"\s*\}/g;
+              const matches = [...qBlock.matchAll(qRegex)];
+              questions = matches.map((m, idx) => {
+                const qText = m[1];
+                const optsStr = m[2];
+                const qAns = m[3];
+                const options = optsStr.split(',').map(o => o.replace(/"/g, '').trim());
+                return {
+                  id: idx + 1,
+                  text: qText,
+                  type: "Multiple Choice",
+                  options,
+                  answer: qAns
+                };
+              });
+            }
+          } catch (regexErr) {
+            console.error("Failed to recover questions via regex:", regexErr);
+          }
+        }
+      }
+
+      setMessages(prev => [...prev, { role: 'ai', text: aiText, hasDraft: hasDraft }]);
+
+      // If AI generated an exam draft
+      if (hasDraft && questions) {
         let p = 0;
-        const totalQuestions = data.questions;
+        const totalQuestions = questions;
         setDraftExam({
-          examId: data.examId || Math.floor(Math.random() * 9000) + 1000,
-          title: data.title || 'Đề thi mới tạo bởi AI',
-          category: data.category || 'Chung',
-          level: data.level || 'Trung cấp',
+          examId: examId || Math.floor(Math.random() * 9000) + 1000,
+          title: title || 'Đề thi mới tạo bởi AI',
+          category: category || 'Chung',
+          level: level || 'Trung cấp',
           status: 'Nháp',
-          timeLimit: data.timeLimit || 30,
-          totalScore: data.totalScore || 10,
+          timeLimit: timeLimit || 30,
+          totalScore: totalScore || 10,
           progress: 0,
           questions: []
         });
@@ -83,15 +149,14 @@ const AdminChatbot: React.FC = () => {
           setDraftExam(prev => {
             if (!prev) return null;
             const showCount = Math.floor((p / 100) * totalQuestions.length);
-            return { 
-              ...prev, 
-              progress: p, 
-              questions: totalQuestions.slice(0, showCount) 
+            return {
+              ...prev,
+              progress: p,
+              questions: totalQuestions.slice(0, showCount)
             };
           });
           if (p >= 100) {
             clearInterval(interval);
-            // Highlight for a bit
             setHighlightDraft(true);
             setTimeout(() => setHighlightDraft(false), 2000);
           }
@@ -136,7 +201,7 @@ const AdminChatbot: React.FC = () => {
       const res = await examsApi.createFull(payload);
       setDraftExam(prev => prev ? { ...prev, examId: res.data.examId, status: 'Draft' } : null);
       setMessages(prev => [...prev, { role: 'ai', text: `💾 Đề thi nháp "${draftExam.title}" đã được lưu vào cơ sở dữ liệu.` }]);
-    } catch (e) { 
+    } catch (e) {
       console.error(e);
       setMessages(prev => [...prev, { role: 'ai', text: '❌ Lưu nháp thất bại. Vui lòng kiểm tra kết nối.' }]);
     }
@@ -164,7 +229,7 @@ const AdminChatbot: React.FC = () => {
       const res = await examsApi.createFull(payload);
       setDraftExam(prev => prev ? { ...prev, examId: res.data.examId, status: 'Published' } : null);
       setMessages(prev => [...prev, { role: 'ai', text: `🚀 Thành công! Đề thi "${draftExam.title}" đã được xuất bản công khai.` }]);
-    } catch (e) { 
+    } catch (e) {
       console.error(e);
       setMessages(prev => [...prev, { role: 'ai', text: '❌ Xuất bản thất bại. Vui lòng thử lại.' }]);
     }
@@ -179,9 +244,9 @@ const AdminChatbot: React.FC = () => {
         <div className="flex items-center gap-4">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
-            <input 
-              type="text" 
-              placeholder="Tìm kiếm tài nguyên..." 
+            <input
+              type="text"
+              placeholder="Tìm kiếm tài nguyên..."
               className="pl-10 pr-4 py-2 bg-gray-100 border-none rounded-full text-xs focus:ring-2 focus:ring-[#1a7a4a]/20 outline-none w-64"
             />
           </div>
@@ -217,7 +282,7 @@ const AdminChatbot: React.FC = () => {
                     {msg.text}
                   </div>
                   {msg.hasDraft && (
-                    <button 
+                    <button
                       onClick={handleViewDraft}
                       className="flex items-center gap-2 self-start px-3 py-1.5 bg-[#1a7a4a]/10 text-[#1a7a4a] text-[10px] font-bold rounded-lg hover:bg-[#1a7a4a] hover:text-white transition-all border border-[#1a7a4a]/20"
                     >
@@ -242,14 +307,14 @@ const AdminChatbot: React.FC = () => {
 
           <div className="input-area-custom">
             <div className="input-wrapper-chat">
-              <input 
+              <input
                 value={input}
                 onChange={e => setInput(e.target.value)}
                 onKeyDown={e => e.key === 'Enter' && handleSend()}
-                placeholder="Gửi tin nhắn cho trợ lý AI..." 
+                placeholder="Gửi tin nhắn cho trợ lý AI..."
               />
-              <button 
-                className="send-button-chat" 
+              <button
+                className="send-button-chat"
                 onClick={handleSend}
                 disabled={sending || !input.trim()}
               >
@@ -281,10 +346,10 @@ const AdminChatbot: React.FC = () => {
                 <div className="w-20 h-20 rounded-3xl bg-gray-50 flex items-center justify-center text-gray-200 mb-4 border border-dashed border-gray-200">
                   <Bot size={40} />
                 </div>
-                <p className="text-sm text-gray-400 font-medium">Yêu cầu AI tạo đề thi.<br/>Bản thảo sẽ xuất hiện tại đây.</p>
+                <p className="text-sm text-gray-400 font-medium">Yêu cầu AI tạo đề thi.<br />Bản thảo sẽ xuất hiện tại đây.</p>
                 <div className="mt-6 flex flex-wrap justify-center gap-2">
-                  {["Tạo đề Tiếng Anh", "Tạo đề C#", "Tạo đề SQL"].map(hint => (
-                    <button 
+                  {["Tạo đề ASP.NET CORE", "Tạo đề C#", "Tạo đề SQL"].map(hint => (
+                    <button
                       key={hint}
                       onClick={() => setInput(hint)}
                       className="px-3 py-1.5 bg-gray-50 text-gray-500 text-[10px] font-bold rounded-lg hover:bg-[#1a7a4a] hover:text-white transition-all"
@@ -301,11 +366,10 @@ const AdminChatbot: React.FC = () => {
                     <div className="flex items-center gap-1.5">
                       <span className="text-[10px] font-black text-[#1a7a4a] bg-green-50 px-2 py-0.5 rounded">NHÁP</span>
                       {draftExam.level && (
-                        <span className={`text-[10px] font-black px-2 py-0.5 rounded uppercase tracking-wider ${
-                          draftExam.level === 'Sơ cấp' ? 'text-blue-600 bg-blue-50 border border-blue-100' : 
-                          draftExam.level === 'Cao cấp' ? 'text-amber-600 bg-amber-50 border border-amber-100' : 
-                          'text-[#1a7a4a] bg-green-50 border border-green-100'
-                        }`}>
+                        <span className={`text-[10px] font-black px-2 py-0.5 rounded uppercase tracking-wider ${draftExam.level === 'Sơ cấp' ? 'text-blue-600 bg-blue-50 border border-blue-100' :
+                            draftExam.level === 'Cao cấp' ? 'text-amber-600 bg-amber-50 border border-amber-100' :
+                              'text-[#1a7a4a] bg-green-50 border border-green-100'
+                          }`}>
                           {draftExam.level}
                         </span>
                       )}
@@ -313,7 +377,7 @@ const AdminChatbot: React.FC = () => {
                     <span className="text-[10px] font-bold text-gray-400">#{draftExam.examId}</span>
                   </div>
                   <h4 className="font-bold text-gray-900 mb-4">{draftExam.title}</h4>
-                  
+
                   <div className="space-y-2">
                     <div className="flex items-center justify-between text-[10px] font-bold text-gray-500 uppercase">
                       <span>Đang tạo câu hỏi...</span>
@@ -326,7 +390,7 @@ const AdminChatbot: React.FC = () => {
                 </div>
 
                 <div className="text-xs font-black text-gray-400 uppercase tracking-widest px-1">Xem trước câu hỏi</div>
-                
+
                 {draftExam.questions?.map((q, idx) => (
                   <div key={idx} className="draft-card">
                     <div className="flex items-center justify-between mb-3">
@@ -334,7 +398,7 @@ const AdminChatbot: React.FC = () => {
                       <span className="text-[10px] font-bold text-gray-400">{q.type}</span>
                     </div>
                     <p className="text-sm font-bold text-gray-800 leading-relaxed mb-4">{q.text}</p>
-                    
+
                     {q.options && (
                       <div className="space-y-2">
                         {q.options.filter(o => o).map((opt, oIdx) => (
@@ -364,32 +428,32 @@ const AdminChatbot: React.FC = () => {
                 )}
 
                 <div className="flex gap-2 mt-6">
-                <button 
-                  onClick={handleEdit}
-                  className="flex-1 py-2.5 bg-gray-100 text-gray-700 text-xs font-bold rounded-xl hover:bg-gray-200 transition-all flex items-center justify-center gap-2"
-                >
-                  <Pencil size={14} /> Chỉnh sửa
-                </button>
-                <button 
-                  onClick={handleSaveDraft}
-                  disabled={publishing || draftExam.progress < 100}
-                  className="flex-1 py-2.5 bg-white text-[#1a7a4a] border border-[#1a7a4a]/20 text-xs font-bold rounded-xl hover:bg-green-50 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
-                >
-                  {publishing ? 'Đang lưu...' : 'Lưu nháp'}
-                </button>
-                <button 
-                  onClick={handlePublish}
-                  disabled={publishing || draftExam.progress < 100}
-                  className="flex-[1.5] py-2.5 bg-[#1a7a4a] text-white text-xs font-bold rounded-xl hover:bg-[#15633c] transition-all flex items-center justify-center gap-2 shadow-lg shadow-green-900/10 disabled:opacity-50"
-                >
-                  <Upload size={14} /> {publishing ? 'Đang đăng...' : 'Xuất bản ngay'}
-                </button>
-              </div>
+                  <button
+                    onClick={handleEdit}
+                    className="flex-1 py-2.5 bg-gray-100 text-gray-700 text-xs font-bold rounded-xl hover:bg-gray-200 transition-all flex items-center justify-center gap-2"
+                  >
+                    <Pencil size={14} /> Chỉnh sửa
+                  </button>
+                  <button
+                    onClick={handleSaveDraft}
+                    disabled={publishing || draftExam.progress < 100}
+                    className="flex-1 py-2.5 bg-white text-[#1a7a4a] border border-[#1a7a4a]/20 text-xs font-bold rounded-xl hover:bg-green-50 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                  >
+                    {publishing ? 'Đang lưu...' : 'Lưu nháp'}
+                  </button>
+                  <button
+                    onClick={handlePublish}
+                    disabled={publishing || draftExam.progress < 100}
+                    className="flex-[1.5] py-2.5 bg-[#1a7a4a] text-white text-xs font-bold rounded-xl hover:bg-[#15633c] transition-all flex items-center justify-center gap-2 shadow-lg shadow-green-900/10 disabled:opacity-50"
+                  >
+                    <Upload size={14} /> {publishing ? 'Đang đăng...' : 'Xuất bản ngay'}
+                  </button>
+                </div>
               </div>
             )
-          }</div>
+            }</div>
+        </div>
       </div>
-    </div>
     </AdminLayout>
   );
 };

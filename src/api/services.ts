@@ -53,3 +53,9 @@ export const adminApi = {
   getStats: () => api.get('/Admin/stats'),
   getRecentActivity: () => api.get('/Admin/recent-activity'),
 };
+
+export const notificationsApi = {
+  getAll: () => api.get('/Notifications'),
+  markAllRead: () => api.post('/Notifications/mark-all-read'),
+};
+
