@@ -30,6 +30,194 @@ interface Msg {
   hasDraft?: boolean;
 }
 
+interface ChatbotResponseDraft {
+  intent?: string;
+  hasDraft?: boolean;
+  message?: string;
+  response?: string;
+  warning?: string | null;
+  questionCountRequested?: number;
+  questionCountActual?: number;
+  questionCountAdjusted?: boolean;
+  examId?: number;
+  title?: string;
+  category?: string;
+  level?: string;
+  timeLimit?: number;
+  totalScore?: number;
+  questions?: QuestionDraft[];
+}
+
+const repairTruncatedJson = (json: string) => {
+  const trimmed = json.trim();
+  if (!trimmed) return '{}';
+
+  const stack: string[] = [];
+  let inQuote = false;
+  let escaped = false;
+
+  for (let i = 0; i < trimmed.length; i++) {
+    const c = trimmed[i];
+    if (escaped) {
+      escaped = false;
+      continue;
+    }
+    if (c === '\\') {
+      escaped = true;
+      continue;
+    }
+    if (c === '"') {
+      inQuote = !inQuote;
+      continue;
+    }
+    if (!inQuote) {
+      if (c === '{' || c === '[') {
+        stack.push(c);
+      } else if (c === '}' || c === ']') {
+        if (stack.length > 0) {
+          const expected = c === '}' ? '{' : '[';
+          if (stack[stack.length - 1] === expected) {
+            stack.pop();
+          }
+        }
+      }
+    }
+  }
+
+  let repaired = trimmed;
+  if (inQuote) {
+    repaired += '"';
+  }
+
+  repaired = repaired.replace(/,\s*([}\]])/g, '$1');
+
+  for (let i = stack.length - 1; i >= 0; i--) {
+    repaired += stack[i] === '{' ? '}' : ']';
+  }
+
+  return repaired;
+};
+
+const extractJsonCandidate = (rawText: string) => {
+  const cleaned = rawText.replace(/```json|```/g, '').trim();
+  const start = cleaned.indexOf('{');
+  const end = cleaned.lastIndexOf('}');
+  if (start === -1 || end === -1 || end <= start) {
+    return null;
+  }
+
+  return cleaned.substring(start, end + 1);
+};
+
+const tryParseChatbotJson = (rawText: string) => {
+  const candidate = extractJsonCandidate(rawText);
+  if (!candidate) return null;
+
+  try {
+    return JSON.parse(candidate);
+  } catch {
+    try {
+      return JSON.parse(repairTruncatedJson(candidate));
+    } catch {
+      return null;
+    }
+  }
+};
+
+const buildFriendlyDraftMessage = (parsed: any) => {
+  const title = typeof parsed?.title === 'string' && parsed.title.trim() ? parsed.title.trim() : 'đề thi mới';
+  const category = typeof parsed?.category === 'string' && parsed.category.trim() ? parsed.category.trim() : '';
+  const count = typeof parsed?.questionCountActual === 'number'
+    ? parsed.questionCountActual
+    : Array.isArray(parsed?.questions)
+      ? parsed.questions.length
+      : undefined;
+
+  if (count && category) {
+    return `Tôi đã tạo xong ${count} câu cho đề "${title}" (${category}). Bạn có thể xem bản thảo ở khung bên phải.`;
+  }
+
+  if (count) {
+    return `Tôi đã tạo xong ${count} câu cho đề "${title}". Bạn có thể xem bản thảo ở khung bên phải.`;
+  }
+
+  if (category) {
+    return `Tôi đã tạo xong đề "${title}" (${category}). Bạn có thể xem bản thảo ở khung bên phải.`;
+  }
+
+  return `Tôi đã tạo xong đề "${title}". Bạn có thể xem bản thảo ở khung bên phải.`;
+};
+
+const normalizeAssistantText = (text: unknown) => {
+  if (typeof text !== 'string') return 'Tôi đã nhận được yêu cầu của bạn.';
+
+  const trimmed = text.trim();
+  if (!trimmed) return 'Tôi đã nhận được yêu cầu của bạn.';
+
+  const parsed = tryParseChatbotJson(trimmed);
+  if (parsed) {
+    if (typeof parsed.message === 'string' && parsed.message.trim()) {
+      return parsed.message.trim();
+    }
+
+    if (typeof parsed.response === 'string' && parsed.response.trim()) {
+      return parsed.response.trim();
+    }
+
+    if (parsed.intent === 'create_exam' || Array.isArray(parsed.questions)) {
+      return buildFriendlyDraftMessage(parsed);
+    }
+
+    return 'Tôi đã nhận được yêu cầu của bạn.';
+  }
+
+  const messageMatch = trimmed.match(/"message"\s*:\s*"([\s\S]*?)"\s*$/);
+  if (messageMatch?.[1]) {
+    return messageMatch[1].replace(/\\"/g, '"');
+  }
+
+  if (trimmed.startsWith('{') && (trimmed.includes('"intent"') || trimmed.includes('"questions"'))) {
+    const titleMatch = trimmed.match(/"title"\s*:\s*"([^"]+)"/);
+    const categoryMatch = trimmed.match(/"category"\s*:\s*"([^"]+)"/);
+    const countMatch = trimmed.match(/"questionCountActual"\s*:\s*(\d+)/) || trimmed.match(/"questions"\s*:\s*\[(.*?)\]/s);
+    const preview = {
+      title: titleMatch?.[1],
+      category: categoryMatch?.[1],
+      questionCountActual: countMatch?.[1] ? Number(countMatch[1]) : undefined,
+    };
+
+    return buildFriendlyDraftMessage(preview);
+  }
+
+  return trimmed.replace(/^"|"$/g, '');
+};
+
+const isDraftQuestionList = (value: unknown): value is QuestionDraft[] => Array.isArray(value) && value.length > 0;
+
+const buildDraftFromResponse = (data: any) => {
+  const responseLike: ChatbotResponseDraft = data ?? {};
+  const parsedMessage = typeof responseLike.message === 'string' ? tryParseChatbotJson(responseLike.message) : null;
+  const parsedResponse = typeof responseLike.response === 'string' ? tryParseChatbotJson(responseLike.response) : null;
+  const parsed = parsedMessage || parsedResponse || responseLike;
+  const questions = isDraftQuestionList(parsed.questions) ? parsed.questions : isDraftQuestionList(responseLike.questions) ? responseLike.questions : undefined;
+  const hasDraft = Boolean(responseLike.hasDraft || parsed.intent === 'create_exam' || questions);
+
+  return {
+    hasDraft,
+    title: parsed.title || responseLike.title,
+    category: parsed.category || responseLike.category,
+    level: parsed.level || responseLike.level,
+    timeLimit: parsed.timeLimit || responseLike.timeLimit,
+    totalScore: parsed.totalScore || responseLike.totalScore,
+    examId: parsed.examId || responseLike.examId,
+    warning: parsed.warning || responseLike.warning || null,
+    questionCountRequested: parsed.questionCountRequested || responseLike.questionCountRequested,
+    questionCountActual: parsed.questionCountActual || responseLike.questionCountActual,
+    questionCountAdjusted: Boolean(parsed.questionCountAdjusted || responseLike.questionCountAdjusted),
+    questions
+  };
+};
+
 const AdminChatbot: React.FC = () => {
   const [messages, setMessages] = useState<Msg[]>([
     { role: 'ai', text: "Xin chào! Tôi đã sẵn sàng hỗ trợ bạn soạn thảo đề thi. Hôm nay chúng ta sẽ xây dựng bộ đề thuộc chủ đề nào?" }
@@ -58,88 +246,26 @@ const AdminChatbot: React.FC = () => {
       const res = await chatbotApi.chat(userMsg);
       const data = res.data;
       
-      let aiText = data.message || data.response || 'Tôi đang xử lý yêu cầu của bạn...';
-      let hasDraft = data.hasDraft;
-      let questions = data.questions;
-      let title = data.title;
-      let category = data.category;
-      let level = data.level;
-      let timeLimit = data.timeLimit;
-      let totalScore = data.totalScore;
-      let examId = data.examId;
+      const draftData = buildDraftFromResponse(data);
+      const aiText = normalizeAssistantText(data.message ?? data.response ?? data);
 
-      // Robust check: if the message is a raw JSON string
-      if (typeof aiText === 'string' && aiText.trim().startsWith('{')) {
-        try {
-          const start = aiText.indexOf('{');
-          const end = aiText.lastIndexOf('}');
-          if (start !== -1 && end !== -1) {
-            const jsonStr = aiText.substring(start, end + 1);
-            const parsedData = JSON.parse(jsonStr);
-            if (parsedData) {
-              aiText = parsedData.message || parsedData.response || `Tôi đã soạn thảo xong đề thi "${parsedData.title || 'mới'}". Bạn có thể xem bản thảo ở khung bên phải.`;
-              hasDraft = true;
-              questions = parsedData.questions;
-              title = parsedData.title;
-              category = parsedData.category;
-              level = parsedData.level;
-              timeLimit = parsedData.timeLimit;
-              totalScore = parsedData.totalScore;
-              examId = parsedData.examId;
-            }
-          }
-        } catch (jsonErr) {
-          console.error("Frontend failed to parse raw JSON message:", jsonErr);
-          // Recover title for a polished UX even if JSON parsing failed
-          const titleMatch = aiText.match(/"title"\s*:\s*"([^"]+)"/);
-          if (titleMatch && titleMatch[1]) {
-            aiText = `Tôi đã soạn thảo xong đề thi "${titleMatch[1]}". Bạn có thể xem bản thảo ở khung bên phải.`;
-          } else {
-            aiText = "Tôi đã soạn thảo xong đề thi theo yêu cầu. Hãy xem bản thảo ở khung bên phải!";
-          }
-          hasDraft = true;
+      setMessages(prev => [...prev, { role: 'ai', text: aiText, hasDraft: draftData.hasDraft }]);
 
-          // Attempt to extract questions from the broken/truncated JSON using regex
-          try {
-            const questionsMatch = aiText.match(/"questions"\s*:\s*\[([\s\S]*?)\]/);
-            if (questionsMatch && questionsMatch[1]) {
-              const qBlock = questionsMatch[1];
-              const qRegex = /\{\s*"text"\s*:\s*"([^"]+)"[\s\S]*?"options"\s*:\s*\[([\s\S]*?)\][\s\S]*?"answer"\s*:\s*"([^"]+)"\s*\}/g;
-              const matches = [...qBlock.matchAll(qRegex)];
-              questions = matches.map((m, idx) => {
-                const qText = m[1];
-                const optsStr = m[2];
-                const qAns = m[3];
-                const options = optsStr.split(',').map(o => o.replace(/"/g, '').trim());
-                return {
-                  id: idx + 1,
-                  text: qText,
-                  type: "Multiple Choice",
-                  options,
-                  answer: qAns
-                };
-              });
-            }
-          } catch (regexErr) {
-            console.error("Failed to recover questions via regex:", regexErr);
-          }
-        }
+      if (draftData.warning) {
+        setMessages(prev => [...prev, { role: 'ai', text: `⚠️ ${draftData.warning}` }]);
       }
 
-      setMessages(prev => [...prev, { role: 'ai', text: aiText, hasDraft: hasDraft }]);
-
-      // If AI generated an exam draft
-      if (hasDraft && questions) {
+      if (draftData.hasDraft && draftData.questions) {
         let p = 0;
-        const totalQuestions = questions;
+        const totalQuestions = draftData.questions;
         setDraftExam({
-          examId: examId || Math.floor(Math.random() * 9000) + 1000,
-          title: title || 'Đề thi mới tạo bởi AI',
-          category: category || 'Chung',
-          level: level || 'Trung cấp',
+          examId: draftData.examId || Math.floor(Math.random() * 9000) + 1000,
+          title: draftData.title || 'Đề thi mới tạo bởi AI',
+          category: draftData.category || 'Chung',
+          level: draftData.level || 'Trung cấp',
           status: 'Nháp',
-          timeLimit: timeLimit || 30,
-          totalScore: totalScore || 10,
+          timeLimit: draftData.timeLimit || 30,
+          totalScore: draftData.totalScore || 10,
           progress: 0,
           questions: []
         });
@@ -164,7 +290,7 @@ const AdminChatbot: React.FC = () => {
       }
     } catch (err) {
       console.error(err);
-      setMessages(prev => [...prev, { role: 'ai', text: 'Đã xảy ra lỗi khi kết nối AI. Vui lòng thử lại.' }]);
+      setMessages(prev => [...prev, { role: 'ai', text: 'Đã xảy ra lỗi khi kết nối AI. Vui lòng thử lại bằng tiếng Việt hoặc rút gọn yêu cầu.' }]);
     } finally {
       setSending(false);
     }
@@ -361,6 +487,16 @@ const AdminChatbot: React.FC = () => {
               </div>
             ) : (
               <div className="space-y-4">
+                {draftExam && (
+                  <div className="px-3 py-2 rounded-xl bg-amber-50 text-amber-700 text-xs font-medium border border-amber-100">
+                    Bản thảo đã sẵn sàng. Nếu số câu bị AI lệch hoặc hệ thống đã tự thêm câu, bạn sẽ thấy thông báo trong khung hội thoại.
+                  </div>
+                )}
+                {draftExam && draftExam.questions && draftExam.questions.length > 0 && (
+                  <div className="px-3 py-2 rounded-xl bg-green-50 text-green-700 text-xs font-medium border border-green-100">
+                    Đề hiện có {draftExam.questions.length} câu trong bản nháp.
+                  </div>
+                )}
                 <div className={`draft-card ${highlightDraft ? 'active' : ''}`}>
                   <div className="flex items-center justify-between mb-3">
                     <div className="flex items-center gap-1.5">

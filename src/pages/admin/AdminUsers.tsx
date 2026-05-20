@@ -33,6 +33,7 @@ const AdminUsers: React.FC = () => {
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [history, setHistory] = useState<ExamHistory[]>([]);
   const [loadingHistory, setLoadingHistory] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const fetchUsers = React.useCallback(async () => {
     setLoading(true);
@@ -53,6 +54,7 @@ const AdminUsers: React.FC = () => {
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
+    setError(null);
     try {
       if (editingUser) {
         await usersApi.update(editingUser.userId, { ...editingUser, ...form });
@@ -61,7 +63,11 @@ const AdminUsers: React.FC = () => {
       }
       setShowModal(false);
       fetchUsers();
-    } catch (e) { console.error(e); }
+    } catch (e: any) {
+      console.error(e);
+      const errMsg = e.response?.data?.message || 'Có lỗi xảy ra, vui lòng thử lại.';
+      setError(errMsg);
+    }
     finally { setSaving(false); }
   };
 
@@ -74,6 +80,7 @@ const AdminUsers: React.FC = () => {
   };
 
   const openEdit = (user: User) => {
+    setError(null);
     setEditingUser(user);
     setForm({ username: user.username, fullName: user.fullName || '', email: user.email || '', role: user.role, passwordHash: '' });
     setShowModal(true);
@@ -91,6 +98,7 @@ const AdminUsers: React.FC = () => {
   };
 
   const openCreate = () => {
+    setError(null);
     setEditingUser(null);
     setForm({ username: '', fullName: '', email: '', role: 'User', passwordHash: '' });
     setShowModal(true);
@@ -222,6 +230,12 @@ const AdminUsers: React.FC = () => {
                 </button>
               </div>
               <form onSubmit={handleSave} className="p-6 space-y-4">
+                {error && (
+                  <div className="p-3 bg-red-50 border border-red-100 text-red-600 rounded-xl text-xs font-bold flex items-center gap-2">
+                    <span className="w-1.5 h-1.5 rounded-full bg-red-500 shrink-0"></span>
+                    {error}
+                  </div>
+                )}
                 <div>
                   <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-1.5">Username</label>
                   <input 
@@ -255,6 +269,8 @@ const AdminUsers: React.FC = () => {
                   <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-1.5">Mật khẩu {editingUser && '(để trống nếu không đổi)'}</label>
                   <input 
                     type="password" 
+                    name={editingUser ? 'new-password' : 'password'}
+                    autoComplete="new-password"
                     required={!editingUser}
                     className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-[#1a7a4a]/20 focus:border-[#1a7a4a] outline-none transition-all"
                     value={form.passwordHash}

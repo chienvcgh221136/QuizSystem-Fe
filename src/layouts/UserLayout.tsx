@@ -22,12 +22,14 @@ const UserLayout = ({ children }: { children: ReactNode }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [notificationsUnavailable, setNotificationsUnavailable] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   const fetchNotifications = async () => {
     try {
       const res = await notificationsApi.getAll();
       setNotifications(res.data);
+      setNotificationsUnavailable(false);
       
       const lastCheckedTimeStr = localStorage.getItem('lastCheckedNotificationTime') || '1970-01-01T00:00:00.000Z';
       const lastCheckedTime = new Date(lastCheckedTimeStr);
@@ -35,16 +37,19 @@ const UserLayout = ({ children }: { children: ReactNode }) => {
       const unread = res.data.filter((n: NotificationItem) => new Date(n.createdAt) > lastCheckedTime).length;
       setUnreadCount(unread);
     } catch (e) {
-      console.error("Failed to fetch notifications:", e);
+      setNotificationsUnavailable(true);
     }
   };
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchNotifications();
-    const interval = setInterval(fetchNotifications, 10000); // Poll every 10 seconds for real-time feel
+    if (notificationsUnavailable) {
+      return;
+    }
+
+    const interval = setInterval(fetchNotifications, 10000);
     return () => clearInterval(interval);
-  }, []);
+  }, [notificationsUnavailable]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -61,6 +66,7 @@ const UserLayout = ({ children }: { children: ReactNode }) => {
       // Clear unread count locally when opening dropdown
       localStorage.setItem('lastCheckedNotificationTime', new Date().toISOString());
       setUnreadCount(0);
+      void fetchNotifications();
     }
     setIsOpen(!isOpen);
   };
@@ -157,7 +163,11 @@ const UserLayout = ({ children }: { children: ReactNode }) => {
 
                 {/* List Items */}
                 <div className="max-h-80 overflow-y-auto divide-y divide-gray-50 scrollbar-thin">
-                  {notifications.length === 0 ? (
+                  {notificationsUnavailable && notifications.length === 0 ? (
+                    <div className="px-4 py-8 text-center text-gray-400 text-xs font-medium">
+                      Không thể tải thông báo lúc này
+                    </div>
+                  ) : notifications.length === 0 ? (
                     <div className="px-4 py-8 text-center text-gray-400 text-xs font-medium">
                       Không có thông báo mới
                     </div>

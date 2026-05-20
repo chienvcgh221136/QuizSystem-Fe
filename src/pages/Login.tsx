@@ -57,6 +57,8 @@ const LoginPage: React.FC = () => {
               <User size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-[#1a7a4a] transition-colors" />
               <input
                 type="text"
+                name="username"
+                autoComplete="username"
                 placeholder="Nhập tên đăng nhập..."
                 value={username}
                 onChange={e => setUsername(e.target.value)}
@@ -71,6 +73,8 @@ const LoginPage: React.FC = () => {
               <Lock size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-[#1a7a4a] transition-colors" />
               <input
                 type="password"
+                name="password"
+                autoComplete="current-password"
                 placeholder="Nhập mật khẩu..."
                 value={password}
                 onChange={e => setPassword(e.target.value)}
