@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import AdminLayout from '../../layouts/AdminLayout';
 import { chatbotApi, examsApi } from '../../api/services';
 import { Send, Bot, User, Pencil, Upload, Settings, Search, Bell, User as UserIcon, History as HistoryIcon } from 'lucide-react';
+import { stripCreatedByAI } from '../../utils/strings';
 import './AdminChatbot.css';
 
 interface QuestionDraft {
@@ -15,12 +16,14 @@ interface QuestionDraft {
 interface DraftExam {
   examId: number;
   title: string;
+  description?: string;
   category?: string;
   level?: string;
   status?: string;
   timeLimit?: number;
   totalScore?: number;
   questions?: QuestionDraft[];
+  createdByAI?: boolean;
   progress: number;
 }
 
@@ -41,6 +44,7 @@ interface ChatbotResponseDraft {
   questionCountAdjusted?: boolean;
   examId?: number;
   title?: string;
+  description?: string;
   category?: string;
   level?: string;
   timeLimit?: number;
@@ -109,7 +113,7 @@ const extractJsonCandidate = (rawText: string) => {
   return cleaned.substring(start, end + 1);
 };
 
-const tryParseChatbotJson = (rawText: string) => {
+const tryParseChatbotJson = (rawText: string): unknown => {
   const candidate = extractJsonCandidate(rawText);
   if (!candidate) return null;
 
@@ -124,7 +128,7 @@ const tryParseChatbotJson = (rawText: string) => {
   }
 };
 
-const buildFriendlyDraftMessage = (parsed: any) => {
+const buildFriendlyDraftMessage = (parsed: Partial<ChatbotResponseDraft>) => {
   const title = typeof parsed?.title === 'string' && parsed.title.trim() ? parsed.title.trim() : 'đề thi mới';
   const category = typeof parsed?.category === 'string' && parsed.category.trim() ? parsed.category.trim() : '';
   const count = typeof parsed?.questionCountActual === 'number'
@@ -154,7 +158,8 @@ const normalizeAssistantText = (text: unknown) => {
   const trimmed = text.trim();
   if (!trimmed) return 'Tôi đã nhận được yêu cầu của bạn.';
 
-  const parsed = tryParseChatbotJson(trimmed);
+  const parsedRaw = tryParseChatbotJson(trimmed);
+  const parsed = (parsedRaw as Partial<ChatbotResponseDraft> | null);
   if (parsed) {
     if (typeof parsed.message === 'string' && parsed.message.trim()) {
       return parsed.message.trim();
@@ -194,17 +199,19 @@ const normalizeAssistantText = (text: unknown) => {
 
 const isDraftQuestionList = (value: unknown): value is QuestionDraft[] => Array.isArray(value) && value.length > 0;
 
-const buildDraftFromResponse = (data: any) => {
-  const responseLike: ChatbotResponseDraft = data ?? {};
+const buildDraftFromResponse = (data: unknown): ChatbotResponseDraft => {
+  const responseLike = (data ?? {}) as ChatbotResponseDraft;
   const parsedMessage = typeof responseLike.message === 'string' ? tryParseChatbotJson(responseLike.message) : null;
   const parsedResponse = typeof responseLike.response === 'string' ? tryParseChatbotJson(responseLike.response) : null;
-  const parsed = parsedMessage || parsedResponse || responseLike;
+  const parsedAny = parsedMessage ?? parsedResponse ?? responseLike;
+  const parsed = (parsedAny as Partial<ChatbotResponseDraft>);
   const questions = isDraftQuestionList(parsed.questions) ? parsed.questions : isDraftQuestionList(responseLike.questions) ? responseLike.questions : undefined;
   const hasDraft = Boolean(responseLike.hasDraft || parsed.intent === 'create_exam' || questions);
 
   return {
     hasDraft,
     title: parsed.title || responseLike.title,
+    description: parsed.description || responseLike.description || (typeof parsed.message === 'string' ? parsed.message : responseLike.message),
     category: parsed.category || responseLike.category,
     level: parsed.level || responseLike.level,
     timeLimit: parsed.timeLimit || responseLike.timeLimit,
@@ -278,7 +285,7 @@ const AdminChatbot: React.FC = () => {
       setMessages(prev => [...prev, { role: 'ai', text: aiText, hasDraft: draftData.hasDraft }]);
 
       if (draftData.warning) {
-        setMessages(prev => [...prev, { role: 'ai', text: `⚠️ ${draftData.warning}` }]);
+        setMessages(prev => [...prev, { role: 'ai', text: `${draftData.warning}` }]);
       }
 
       if (draftData.hasDraft && draftData.questions) {
@@ -286,7 +293,8 @@ const AdminChatbot: React.FC = () => {
         const totalQuestions = draftData.questions;
         setDraftExam({
           examId: draftData.examId || Math.floor(Math.random() * 9000) + 1000,
-          title: draftData.title || 'Đề thi mới tạo bởi AI',
+          title: draftData.title || 'Đề thi mới',
+          description: draftData.description || undefined,
           category: draftData.category || 'Chung',
           level: draftData.level || 'Trung cấp',
           status: 'Nháp',
@@ -295,6 +303,20 @@ const AdminChatbot: React.FC = () => {
           progress: 0,
           questions: []
         });
+        // mark as AI-created so the frontend can send this info to backend
+        setDraftExam(prev => prev ? { ...prev, createdByAI: true } : null);
+
+          // If AI didn't provide a description, ask AI to generate a short, relevant description
+          if (!draftData.description) {
+            (async () => {
+              try {
+                const genPrompt = `Hãy viết 1-2 câu mô tả ngắn, liên quan tới nội dung và mục tiêu ôn luyện cho đề thi có tiêu đề "${draftData.title || 'Đề thi mới'}" thuộc danh mục "${draftData.category || 'Chung'}" và cấp độ "${draftData.level || 'Trung cấp'}".`;
+                const genRes = await chatbotApi.chat(genPrompt);
+                const genText = normalizeAssistantText(genRes.data.message ?? genRes.data.response ?? genRes.data as unknown);
+                setDraftExam(prev => prev ? { ...prev, description: genText } : prev);
+              } catch { /* ignore */ }
+            })();
+          }
 
         const interval = setInterval(() => {
           p += 10;
@@ -339,6 +361,7 @@ const AdminChatbot: React.FC = () => {
       const payload = {
         title: draftExam.title,
         category: draftExam.category,
+        createdByAI: draftExam.createdByAI || false,
         level: draftExam.level || 'Trung cấp',
         timeLimit: draftExam.timeLimit,
         totalScore: draftExam.totalScore,
@@ -352,10 +375,10 @@ const AdminChatbot: React.FC = () => {
       };
       const res = await examsApi.createFull(payload);
       setDraftExam(prev => prev ? { ...prev, examId: res.data.examId, status: 'Draft' } : null);
-      setMessages(prev => [...prev, { role: 'ai', text: `💾 Đề thi nháp "${draftExam.title}" đã được lưu vào cơ sở dữ liệu.` }]);
+      setMessages(prev => [...prev, { role: 'ai', text: `Đề thi nháp "${stripCreatedByAI(draftExam.title)}" đã được lưu vào cơ sở dữ liệu.` }]);
     } catch (e) {
       console.error(e);
-      setMessages(prev => [...prev, { role: 'ai', text: '❌ Lưu nháp thất bại. Vui lòng kiểm tra kết nối.' }]);
+      setMessages(prev => [...prev, { role: 'ai', text: 'Lưu nháp thất bại. Vui lòng kiểm tra kết nối.' }]);
     }
     finally { setPublishing(false); }
   };
@@ -366,6 +389,8 @@ const AdminChatbot: React.FC = () => {
     try {
       const payload = {
         title: draftExam.title,
+        description: draftExam.description,
+        createdByAI: draftExam.createdByAI || false,
         category: draftExam.category,
         level: draftExam.level || 'Trung cấp',
         timeLimit: draftExam.timeLimit,
@@ -380,10 +405,10 @@ const AdminChatbot: React.FC = () => {
       };
       const res = await examsApi.createFull(payload);
       setDraftExam(prev => prev ? { ...prev, examId: res.data.examId, status: 'Published' } : null);
-      setMessages(prev => [...prev, { role: 'ai', text: `🚀 Thành công! Đề thi "${draftExam.title}" đã được xuất bản công khai.` }]);
+      setMessages(prev => [...prev, { role: 'ai', text: `Thành công! Đề thi "${stripCreatedByAI(draftExam.title)}" đã được xuất bản công khai.` }]);
     } catch (e) {
       console.error(e);
-      setMessages(prev => [...prev, { role: 'ai', text: '❌ Xuất bản thất bại. Vui lòng thử lại.' }]);
+      setMessages(prev => [...prev, { role: 'ai', text: 'Xuất bản thất bại. Vui lòng thử lại.' }]);
     }
     finally { setPublishing(false); }
   };
@@ -485,7 +510,7 @@ const AdminChatbot: React.FC = () => {
           <div className="draft-header-custom flex items-center justify-between">
             <div>
               <h3>Bản thảo đề thi</h3>
-              {draftExam && <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">{draftExam.title}</p>}
+              {draftExam && <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">{stripCreatedByAI(draftExam.title)}</p>}
             </div>
             <button className="p-2 text-gray-400 hover:text-gray-600 bg-white rounded-xl border border-gray-100 shadow-sm transition-all">
               <Settings size={16} />
@@ -538,7 +563,10 @@ const AdminChatbot: React.FC = () => {
                     </div>
                     <span className="text-[10px] font-bold text-gray-400">#{draftExam.examId}</span>
                   </div>
-                  <h4 className="font-bold text-gray-900 mb-4">{draftExam.title}</h4>
+                  <h4 className="font-bold text-gray-900 mb-2">{stripCreatedByAI(draftExam.title)}</h4>
+                  {draftExam.description && (
+                    <p className="text-sm text-gray-600 mb-4">{draftExam.description}</p>
+                  )}
 
                   <div className="space-y-2">
                     <div className="flex items-center justify-between text-[10px] font-bold text-gray-500 uppercase">
@@ -576,7 +604,20 @@ const AdminChatbot: React.FC = () => {
                     {q.answer && (
                       <div className="mt-3 p-3 bg-green-50/50 rounded-xl border border-green-100 border-dashed">
                         <span className="text-[10px] font-black text-[#1a7a4a] block mb-1">ĐÁP ÁN:</span>
-                        <span className="text-xs text-[#1a7a4a] font-bold">{q.answer}</span>
+                        <span className="text-xs text-[#1a7a4a] font-bold">
+                          {(() => {
+                            // If answer is a single letter A-D and options exist, show full option text
+                            const ans = (q.answer || '').toString().trim();
+                            if (ans.length === 1 && q.options && q.options.length > 0) {
+                              const idx = ans.toUpperCase().charCodeAt(0) - 65;
+                              if (idx >= 0 && idx < q.options.length) {
+                                return `${ans.toUpperCase()}: ${q.options[idx]}`;
+                              }
+                            }
+                            // Otherwise show the raw answer
+                            return ans;
+                          })()}
+                        </span>
                       </div>
                     )}
                   </div>

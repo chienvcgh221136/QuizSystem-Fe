@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { stripCreatedByAI } from '../../utils/strings';
 import { useNavigate } from 'react-router-dom';
 import { examsApi, examResultsApi } from '../../api/services';
 import UserLayout from '../../layouts/UserLayout';
@@ -154,7 +155,7 @@ const AllExams: React.FC = () => {
                           </div>
 
                           <div className="flex-1">
-                            <h4 className="text-sm font-black text-gray-900 leading-snug group-hover:text-[#1a7a4a] transition-colors line-clamp-2 mb-2">{exam.title}</h4>
+                            <h4 className="text-sm font-black text-gray-900 leading-snug group-hover:text-[#1a7a4a] transition-colors line-clamp-2 mb-2">{stripCreatedByAI(exam.title)}</h4>
                             <div className="flex items-center gap-3">
                               <span className="flex items-center gap-1 text-[10px] font-bold text-gray-400 uppercase tracking-widest"><Clock size={11} /> {exam.timeLimit} phút</span>
                               <span className="text-gray-300">|</span>

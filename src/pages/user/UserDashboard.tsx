@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { stripCreatedByAI } from '../../utils/strings';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { examsApi, examResultsApi } from '../../api/services';
@@ -172,7 +173,7 @@ const UserDashboard: React.FC = () => {
                     )}
                   </div>
                   <div>
-                    <h4 className="text-sm font-bold text-gray-900 leading-snug group-hover:text-[#1a7a4a] transition-colors">{exam.title}</h4>
+                    <h4 className="text-sm font-bold text-gray-900 leading-snug group-hover:text-[#1a7a4a] transition-colors">{stripCreatedByAI(exam.title)}</h4>
                     {isCompleted && (
                       <p className="text-[11px] font-bold text-[#1a7a4a] mt-1">Điểm: {attempt.score}/{attempt.maxScore}</p>
                     )}
