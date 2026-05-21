@@ -219,18 +219,44 @@ const buildDraftFromResponse = (data: any) => {
 };
 
 const AdminChatbot: React.FC = () => {
-  const [messages, setMessages] = useState<Msg[]>([
-    { role: 'ai', text: "Xin chào! Tôi đã sẵn sàng hỗ trợ bạn soạn thảo đề thi. Hôm nay chúng ta sẽ xây dựng bộ đề thuộc chủ đề nào?" }
-  ]);
+ // Khôi phục tin nhắn từ sessionStorage (nếu có)
+  const [messages, setMessages] = useState<Msg[]>(() => {
+    const saved = sessionStorage.getItem('quiz_chat_messages');
+    if (saved) {
+      try { return JSON.parse(saved); } catch (e) { console.error(e); }
+    }
+    return [{ role: 'ai', text: "Xin chào! Tôi đã sẵn sàng hỗ trợ bạn soạn thảo đề thi. Hôm nay chúng ta sẽ xây dựng bộ đề thuộc chủ đề nào?" }];
+  });
+
   const [input, setInput] = useState('');
   const [sending, setSending] = useState(false);
-  const [draftExam, setDraftExam] = useState<DraftExam | null>(null);
+
+  // Khôi phục bản thảo đề thi từ sessionStorage (nếu có)
+  const [draftExam, setDraftExam] = useState<DraftExam | null>(() => {
+    const saved = sessionStorage.getItem('quiz_draft_exam');
+    if (saved) {
+      try { return JSON.parse(saved); } catch (e) { console.error(e); }
+    }
+    return null;
+  });
   const [publishing, setPublishing] = useState(false);
   const [highlightDraft, setHighlightDraft] = useState(false);
 
   const bottomRef = useRef<HTMLDivElement>(null);
   const draftRef = useRef<HTMLDivElement>(null);
+// Tự động lưu lịch sử chat mỗi khi có tin nhắn mới
+  useEffect(() => {
+    sessionStorage.setItem('quiz_chat_messages', JSON.stringify(messages));
+  }, [messages]);
 
+  // Tự động lưu đề thi nháp mỗi khi AI cập nhật
+  useEffect(() => {
+    if (draftExam) {
+      sessionStorage.setItem('quiz_draft_exam', JSON.stringify(draftExam));
+    } else {
+      sessionStorage.removeItem('quiz_draft_exam');
+    }
+  }, [draftExam]);
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
