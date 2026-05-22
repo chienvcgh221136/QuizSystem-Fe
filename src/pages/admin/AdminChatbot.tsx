@@ -199,6 +199,25 @@ const normalizeAssistantText = (text: unknown) => {
 
 const isDraftQuestionList = (value: unknown): value is QuestionDraft[] => Array.isArray(value) && value.length > 0;
 
+const questionSignature = (question: QuestionDraft) => {
+  const options = Array.isArray(question.options) ? question.options.filter(Boolean).join('|') : '';
+  return [question.text?.trim().toLowerCase() ?? '', question.type?.trim().toLowerCase() ?? '', options.trim().toLowerCase(), question.answer?.trim().toLowerCase() ?? ''].join('::');
+};
+
+const mergeQuestionLists = (existing: QuestionDraft[], incoming: QuestionDraft[]) => {
+  const merged = [...existing];
+  const seen = new Set(existing.map(questionSignature));
+
+  for (const question of incoming) {
+    const signature = questionSignature(question);
+    if (seen.has(signature)) continue;
+    seen.add(signature);
+    merged.push(question);
+  }
+
+  return merged;
+};
+
 const buildDraftFromResponse = (data: unknown): ChatbotResponseDraft => {
   const responseLike = (data ?? {}) as ChatbotResponseDraft;
   const parsedMessage = typeof responseLike.message === 'string' ? tryParseChatbotJson(responseLike.message) : null;
@@ -271,6 +290,8 @@ const AdminChatbot: React.FC = () => {
   const handleSend = async () => {
     if (!input.trim() || sending) return;
     const userMsg = input.trim();
+    const lowerUserMsg = userMsg.toLowerCase();
+    const isAddQuestionsRequest = /(?:thêm|bổ sung|cộng thêm|mở rộng|nâng lên|tăng lên)/i.test(lowerUserMsg);
     setInput('');
     setMessages(prev => [...prev, { role: 'user', text: userMsg }]);
     setSending(true);
@@ -289,8 +310,11 @@ const AdminChatbot: React.FC = () => {
       }
 
       if (draftData.hasDraft && draftData.questions) {
+        const currentQuestions = Array.isArray(draftExam?.questions) ? draftExam.questions : [];
+        const totalQuestions = isAddQuestionsRequest && currentQuestions.length > 0
+          ? mergeQuestionLists(currentQuestions, draftData.questions)
+          : draftData.questions;
         let p = 0;
-        const totalQuestions = draftData.questions;
         setDraftExam({
           examId: draftData.examId || Math.floor(Math.random() * 9000) + 1000,
           title: draftData.title || 'Đề thi mới',
@@ -301,10 +325,9 @@ const AdminChatbot: React.FC = () => {
           timeLimit: draftData.timeLimit || 30,
           totalScore: draftData.totalScore || 10,
           progress: 0,
-          questions: []
+          questions: [],
+          createdByAI: true
         });
-        // mark as AI-created so the frontend can send this info to backend
-        setDraftExam(prev => prev ? { ...prev, createdByAI: true } : null);
 
           // If AI didn't provide a description, ask AI to generate a short, relevant description
           if (!draftData.description) {

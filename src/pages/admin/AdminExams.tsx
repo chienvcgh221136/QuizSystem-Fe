@@ -106,7 +106,13 @@ const AdminExams: React.FC = () => {
 
   const handleDragStart = (source: 'bank' | 'exam', questionId: number, e: React.DragEvent) => {
     dragSrc.current = { source, questionId };
-    try { e.dataTransfer.setData('text/plain', JSON.stringify({ source, questionId })); } catch { }
+    try {
+      e.dataTransfer.setData('text/plain', JSON.stringify({ source, questionId }));
+    } catch (err) {
+      // Some browsers or environments (like older mobile) may not allow setting drag data — ignore safely
+      // eslint-disable-next-line no-console
+      console.debug('drag data transfer not supported', err);
+    }
     e.dataTransfer.effectAllowed = 'move';
   };
 
@@ -176,7 +182,7 @@ const AdminExams: React.FC = () => {
     await examsApi.delete(id); setLoading(true); refresh();
   };
 
-  const filtered = exams.filter(e => e.title?.toLowerCase().includes(search.toLowerCase()) || e.category?.toLowerCase().includes(search.toLowerCase()));
+  // Use `visibleExams` for rendering; `filtered` removed to avoid unused variable warning
 
   const statusBadge: Record<string, string> = {
     Published: 'bg-green-100 text-green-700',
@@ -253,24 +259,27 @@ const AdminExams: React.FC = () => {
             ) : (
               <div className="space-y-3">
                 {visibleExams.map(exam => (
-                  <div key={exam.examId} className="p-3 border border-gray-100 rounded-xl bg-white shadow-sm flex items-center justify-between">
-                    <div className="flex items-center gap-4 min-w-0">
-                      <div className="min-w-0">
-                        <div className="font-semibold text-gray-900 truncate">{stripCreatedByAI(exam.title)}</div>
-                        <div className="text-xs text-gray-400 truncate max-w-[420px] hidden sm:block">{exam.description}</div>
-                      </div>
-
-                      <div className="flex items-center gap-2 text-[11px] text-gray-500">
-                        <span className="px-2 py-0.5 bg-green-50 text-[#1a7a4a] rounded-full">{exam.category}</span>
-                        <span className="uppercase">{exam.level}</span>
-                        <span>{exam.timeLimit} phút</span>
-                      </div>
+                  <div key={exam.examId} className="p-3 border border-gray-100 rounded-xl bg-white shadow-sm flex items-center gap-4">
+                    {/* Title / desc */}
+                    <div className="flex-1 min-w-0">
+                      <div className="font-semibold text-gray-900 truncate">{stripCreatedByAI(exam.title)}</div>
+                      <div className="text-xs text-gray-400 truncate hidden md:block">{exam.description}</div>
                     </div>
 
-                    <div className="flex items-center gap-2 ml-4">
-                      <button onClick={() => openManage(exam)} className="w-8 h-8 rounded-lg border border-gray-200 bg-white flex items-center justify-center text-gray-400 hover:border-[#1a7a4a] hover:text-[#1a7a4a]" title="Quản lý câu hỏi"><Search size={13} /></button>
-                      <button onClick={() => openEdit(exam)} className="w-8 h-8 rounded-lg border border-gray-200 bg-white flex items-center justify-center text-gray-400" title="Sửa thông tin"><Pencil size={13} /></button>
-                      <button onClick={() => handleDelete(exam.examId)} className="w-8 h-8 rounded-lg border border-gray-200 bg-white flex items-center justify-center text-gray-400 hover:border-red-400 hover:text-red-500" title="Xóa đề"><Trash2 size={13} /></button>
+                    {/* Meta badges */}
+                    <div className="flex-none flex items-center gap-3 text-[11px] text-gray-500 whitespace-nowrap">
+                      <span className="px-2 py-0.5 bg-green-50 text-[#1a7a4a] rounded-full">{exam.category}</span>
+                      <span className="uppercase">{exam.level}</span>
+                      <span>{exam.timeLimit} phút</span>
+                      <span className={`${statusBadge[exam.status] || 'bg-gray-100 text-gray-500'} text-[11px] font-semibold px-2 py-0.5 rounded-full`}>{statusLabel[exam.status] || exam.status}</span>
+                      {isAICreated(exam) && <span className="px-2 py-0.5 bg-purple-50 text-purple-700 rounded-full text-[11px] font-semibold">AI</span>}
+                    </div>
+
+                    {/* Actions */}
+                    <div className="flex-none flex items-center gap-2">
+                      <button onClick={() => openManage(exam)} className="w-9 h-9 rounded-lg border border-gray-200 bg-white flex items-center justify-center text-gray-400 hover:border-[#1a7a4a] hover:text-[#1a7a4a]" title="Quản lý câu hỏi"><Search size={14} /></button>
+                      <button onClick={() => openEdit(exam)} className="w-9 h-9 rounded-lg border border-gray-200 bg-white flex items-center justify-center text-gray-400" title="Sửa thông tin"><Pencil size={14} /></button>
+                      <button onClick={() => handleDelete(exam.examId)} className="w-9 h-9 rounded-lg border border-gray-200 bg-white flex items-center justify-center text-gray-400 hover:border-red-400 hover:text-red-500" title="Xóa đề"><Trash2 size={14} /></button>
                     </div>
                   </div>
                 ))}
