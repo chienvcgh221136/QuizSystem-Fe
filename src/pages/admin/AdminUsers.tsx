@@ -56,18 +56,10 @@ const AdminUsers: React.FC = () => {
     setSaving(true);
     setError(null);
     try {
-      const payload = {
-        ...form,
-        username: form.username.trim(),
-        fullName: form.fullName.trim(),
-        email: form.email.trim(),
-        isActive: true,
-      };
-
       if (editingUser) {
-        await usersApi.update(editingUser.userId, { ...editingUser, ...payload, userId: editingUser.userId });
+        await usersApi.update(editingUser.userId, { ...editingUser, ...form });
       } else {
-        await usersApi.create(payload);
+        await usersApi.create(form);
       }
       setShowModal(false);
       fetchUsers();

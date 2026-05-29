@@ -1,8 +1,7 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState } from 'react';
 import AdminLayout from '../../layouts/AdminLayout';
 import { examsApi, questionsApi } from '../../api/services';
 import { Plus, Pencil, Trash2, Search, X } from 'lucide-react';
-import { stripCreatedByAI } from '../../utils/strings';
 
 interface Exam {
   examId: number;
@@ -13,7 +12,6 @@ interface Exam {
   timeLimit: number;
   totalScore: number;
   status: string;
-  createdBy?: string;
   createdAt: string;
 }
 
@@ -27,7 +25,6 @@ interface Question {
 
 const AdminExams: React.FC = () => {
   const [exams, setExams] = useState<Exam[]>([]);
-  const [activeTab, setActiveTab] = useState<'admin' | 'ai'>('admin');
   const [search, setSearch] = useState('');
   const [qSearch, setQSearch] = useState('');
   const [bSearch, setBSearch] = useState('');
@@ -39,8 +36,6 @@ const AdminExams: React.FC = () => {
   const [examQuestions, setExamQuestions] = useState<Question[]>([]);
   const [availableQuestions, setAvailableQuestions] = useState<Question[]>([]);
   const [loadingQuestions, setLoadingQuestions] = useState(false);
-  const dragSrc = useRef<{ source: 'bank' | 'exam' | null, questionId: number | null }>({ source: null, questionId: null });
-  const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
   const [categories, setCategories] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
 
@@ -80,7 +75,7 @@ const AdminExams: React.FC = () => {
     setForm({ title: '', description: '', category: categories[0] || '', level: 'Trung cấp', timeLimit: 30, totalScore: 100, status: 'Draft', questionCount: 10 });
     setShowModal(true);
   };
-  const openEdit = (exam: Exam) => { setEditExam(exam); setForm({ title: stripCreatedByAI(exam.title), description: exam.description || '', category: exam.category, level: exam.level, timeLimit: exam.timeLimit, totalScore: exam.totalScore, status: exam.status, questionCount: 0 }); setShowModal(true); };
+  const openEdit = (exam: Exam) => { setEditExam(exam); setForm({ title: exam.title, description: exam.description || '', category: exam.category, level: exam.level, timeLimit: exam.timeLimit, totalScore: exam.totalScore, status: exam.status, questionCount: 0 }); setShowModal(true); };
 
   const handleSave = async () => {
     setSaving(true);
@@ -104,63 +99,6 @@ const AdminExams: React.FC = () => {
     } catch (e) { console.error(e); } finally { setLoadingQuestions(false); }
   };
 
-  const handleDragStart = (source: 'bank' | 'exam', questionId: number, e: React.DragEvent) => {
-    dragSrc.current = { source, questionId };
-    try {
-      e.dataTransfer.setData('text/plain', JSON.stringify({ source, questionId }));
-    } catch (err) {
-      // Some browsers or environments (like older mobile) may not allow setting drag data — ignore safely
-      // eslint-disable-next-line no-console
-      console.debug('drag data transfer not supported', err);
-    }
-    e.dataTransfer.effectAllowed = 'move';
-  };
-
-  const handleDragOverItem = (index: number, e: React.DragEvent) => {
-    e.preventDefault();
-    setDragOverIndex(index);
-    e.dataTransfer.dropEffect = 'move';
-  };
-
-  const handleDropOnItem = async (index: number, e: React.DragEvent) => {
-    e.preventDefault();
-    let payload;
-    try { payload = JSON.parse(e.dataTransfer.getData('text/plain')); } catch { payload = dragSrc.current; }
-    if (!payload || !managingExam) return;
-    const qId = payload.questionId as number;
-    if (payload.source === 'bank') {
-      // insert at index (1-based)
-      await examsApi.addQuestion(managingExam.examId, qId, index + 1);
-    } else if (payload.source === 'exam') {
-      // reorder: move qId to index position
-      const ids = examQuestions.map((q) => q.questionId);
-      const fromIdx = ids.indexOf(qId);
-      if (fromIdx === -1) return;
-      ids.splice(fromIdx, 1);
-      ids.splice(index, 0, qId);
-      await examsApi.reorderQuestions(managingExam.examId, ids);
-    }
-    setDragOverIndex(null);
-    openManage(managingExam);
-  };
-
-  const handleDropOnListEnd = async (e: React.DragEvent) => {
-    e.preventDefault();
-    let payload;
-    try { payload = JSON.parse(e.dataTransfer.getData('text/plain')); } catch { payload = dragSrc.current; }
-    if (!payload || !managingExam) return;
-    const qId = payload.questionId as number;
-    if (payload.source === 'bank') {
-      await examsApi.addQuestion(managingExam.examId, qId);
-    } else if (payload.source === 'exam') {
-      const ids = examQuestions.map((q) => q.questionId).filter(id => id !== qId);
-      ids.push(qId);
-      await examsApi.reorderQuestions(managingExam.examId, ids);
-    }
-    setDragOverIndex(null);
-    openManage(managingExam);
-  };
-
   const handleAddQuestion = async (qId: number) => {
     if (!managingExam) return;
     try {
@@ -182,7 +120,7 @@ const AdminExams: React.FC = () => {
     await examsApi.delete(id); setLoading(true); refresh();
   };
 
-  // Use `visibleExams` for rendering; `filtered` removed to avoid unused variable warning
+  const filtered = exams.filter(e => e.title?.toLowerCase().includes(search.toLowerCase()) || e.category?.toLowerCase().includes(search.toLowerCase()));
 
   const statusBadge: Record<string, string> = {
     Published: 'bg-green-100 text-green-700',
@@ -197,21 +135,6 @@ const AdminExams: React.FC = () => {
   };
 
   const inputCls = "w-full px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:border-[#1a7a4a] focus:ring-2 focus:ring-[#1a7a4a]/10 bg-gray-50 focus:bg-white transition-all";
-
-  const isAICreated = (exam: Exam) => {
-    // Prefer explicit flag from backend
-    if (exam.createdBy && exam.createdBy.trim().toLowerCase() === 'ai') return true;
-    // Fallback to heuristics for older records
-    const t = (exam.title || '').toLowerCase();
-    const d = (exam.description || '').toLowerCase();
-    return t.includes('tạo bởi ai') || d.includes('tự động') || d.includes('tạo bởi ai') || t.includes('đề thi tự động');
-  };
-
-  const adminExams = exams.filter(exam => !isAICreated(exam));
-  const aiExams = exams.filter(exam => isAICreated(exam));
-  const visibleExams = (activeTab === 'admin' ? adminExams : aiExams).filter(exam =>
-    exam.title?.toLowerCase().includes(search.toLowerCase()) || exam.category?.toLowerCase().includes(search.toLowerCase())
-  );
 
   return (
     <AdminLayout>
@@ -231,61 +154,50 @@ const AdminExams: React.FC = () => {
           <input placeholder="Tìm kiếm đề thi..." value={search} onChange={e => setSearch(e.target.value)} className="w-full pl-9 pr-4 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:border-[#1a7a4a] bg-gray-50 focus:bg-white transition-colors" />
         </div>
 
-        <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
-          <div className="flex items-center gap-0 border-b border-gray-200 bg-gray-50">
-            <button
-              onClick={() => setActiveTab('admin')}
-              className={`flex-1 px-5 py-4 text-sm font-semibold transition-colors flex items-center justify-center gap-2 ${activeTab === 'admin' ? 'text-[#1a7a4a] bg-white border-b-2 border-[#1a7a4a]' : 'text-gray-500 hover:text-gray-700'}`}
-            >
-              <span>Đề do Admin tạo</span>
-              <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-gray-100 text-gray-500">{adminExams.length}</span>
-            </button>
-            <button
-              onClick={() => setActiveTab('ai')}
-              className={`flex-1 px-5 py-4 text-sm font-semibold transition-colors flex items-center justify-center gap-2 ${activeTab === 'ai' ? 'text-[#1a7a4a] bg-white border-b-2 border-[#1a7a4a]' : 'text-gray-500 hover:text-gray-700'}`}
-            >
-              <span>Đề do AI tạo</span>
-              <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-gray-100 text-gray-500">{aiExams.length}</span>
-            </button>
-          </div>
-
-          <div className="p-4">
-            {loading ? (
-              <div className="text-center py-10 text-gray-400">Đang tải...</div>
-            ) : visibleExams.length === 0 ? (
-              <div className="text-center py-10 text-gray-400">
-                {activeTab === 'admin' ? 'Không có đề do Admin tạo.' : 'Không có đề do AI tạo.'}
-              </div>
-            ) : (
-              <div className="space-y-3">
-                {visibleExams.map(exam => (
-                  <div key={exam.examId} className="p-3 border border-gray-100 rounded-xl bg-white shadow-sm flex items-center gap-4">
-                    {/* Title / desc */}
-                    <div className="flex-1 min-w-0">
-                      <div className="font-semibold text-gray-900 truncate">{stripCreatedByAI(exam.title)}</div>
-                      <div className="text-xs text-gray-400 truncate hidden md:block">{exam.description}</div>
-                    </div>
-
-                    {/* Meta badges */}
-                    <div className="flex-none flex items-center gap-3 text-[11px] text-gray-500 whitespace-nowrap">
-                      <span className="px-2 py-0.5 bg-green-50 text-[#1a7a4a] rounded-full">{exam.category}</span>
-                      <span className="uppercase">{exam.level}</span>
-                      <span>{exam.timeLimit} phút</span>
-                      <span className={`${statusBadge[exam.status] || 'bg-gray-100 text-gray-500'} text-[11px] font-semibold px-2 py-0.5 rounded-full`}>{statusLabel[exam.status] || exam.status}</span>
-                      {isAICreated(exam) && <span className="px-2 py-0.5 bg-purple-50 text-purple-700 rounded-full text-[11px] font-semibold">AI</span>}
-                    </div>
-
-                    {/* Actions */}
-                    <div className="flex-none flex items-center gap-2">
-                      <button onClick={() => openManage(exam)} className="w-9 h-9 rounded-lg border border-gray-200 bg-white flex items-center justify-center text-gray-400 hover:border-[#1a7a4a] hover:text-[#1a7a4a]" title="Quản lý câu hỏi"><Search size={14} /></button>
-                      <button onClick={() => openEdit(exam)} className="w-9 h-9 rounded-lg border border-gray-200 bg-white flex items-center justify-center text-gray-400" title="Sửa thông tin"><Pencil size={14} /></button>
-                      <button onClick={() => handleDelete(exam.examId)} className="w-9 h-9 rounded-lg border border-gray-200 bg-white flex items-center justify-center text-gray-400 hover:border-red-400 hover:text-red-500" title="Xóa đề"><Trash2 size={14} /></button>
-                    </div>
-                  </div>
+        <div className="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm">
+          <table className="w-full text-sm">
+            <thead className="bg-gray-50 border-b border-gray-200">
+              <tr>
+                {['Tên đề thi', 'Danh mục', 'Cấp độ', 'Thời gian', 'Tổng điểm', 'Trạng thái', 'Thao tác'].map(h => (
+                  <th key={h} className="text-left text-[11px] font-bold text-gray-400 uppercase tracking-wide px-4 py-3">{h}</th>
                 ))}
-              </div>
-            )}
-          </div>
+              </tr>
+            </thead>
+            <tbody>
+              {loading ? (
+                <tr><td colSpan={7} className="text-center py-10 text-gray-400">Đang tải...</td></tr>
+              ) : filtered.length === 0 ? (
+                <tr><td colSpan={7} className="text-center py-10 text-gray-400">Không tìm thấy đề thi nào.</td></tr>
+              ) : filtered.map(exam => (
+                <tr key={exam.examId} className="border-b border-gray-50 last:border-0 hover:bg-gray-50 transition-colors">
+                  <td className="px-4 py-3">
+                    <div className="font-semibold text-gray-900">{exam.title}</div>
+                    <div className="text-xs text-gray-400 mt-0.5 truncate max-w-[200px]">{exam.description}</div>
+                  </td>
+                  <td className="px-4 py-3"><span className="text-xs font-semibold bg-green-50 text-[#1a7a4a] px-2.5 py-1 rounded-full">{exam.category}</span></td>
+                  <td className="px-4 py-3 text-gray-600">{exam.level}</td>
+                  <td className="px-4 py-3 text-gray-600">{exam.timeLimit} phút</td>
+                  <td className="px-4 py-3 text-gray-600">{exam.totalScore}</td>
+                  <td className="px-4 py-3">
+                    <span className={`text-[11px] font-semibold px-2.5 py-1 rounded-full ${statusBadge[exam.status] ?? 'bg-gray-100 text-gray-500'}`}>{statusLabel[exam.status] || exam.status}</span>
+                  </td>
+                  <td className="px-4 py-3">
+                    <div className="flex gap-1.5">
+                      <button onClick={() => openManage(exam)} className="w-8 h-8 rounded-lg border border-gray-200 bg-white flex items-center justify-center text-gray-400 hover:border-[#1a7a4a] hover:text-[#1a7a4a] hover:bg-green-50 transition-all" title="Quản lý câu hỏi">
+                        <Search size={13} />
+                      </button>
+                      <button onClick={() => openEdit(exam)} className="w-8 h-8 rounded-lg border border-gray-200 bg-white flex items-center justify-center text-gray-400 hover:border-[#1a7a4a] hover:text-[#1a7a4a] hover:bg-green-50 transition-all" title="Sửa thông tin">
+                        <Pencil size={13} />
+                      </button>
+                      <button onClick={() => handleDelete(exam.examId)} className="w-8 h-8 rounded-lg border border-gray-200 bg-white flex items-center justify-center text-gray-400 hover:border-red-400 hover:text-red-500 hover:bg-red-50 transition-all" title="Xóa đề">
+                        <Trash2 size={13} />
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       </div>
 
@@ -349,7 +261,7 @@ const AdminExams: React.FC = () => {
             <div className="p-6 border-b border-gray-100 bg-gray-50/50">
               <div className="flex items-center justify-between mb-4">
                 <div>
-                  <h3 className="text-xl font-black text-gray-900">Quản lý câu hỏi: {stripCreatedByAI(managingExam.title)}</h3>
+                  <h3 className="text-xl font-black text-gray-900">Quản lý câu hỏi: {managingExam.title}</h3>
                   <p className="text-xs text-gray-500 mt-1">Gán hoặc gỡ câu hỏi từ Ngân hàng câu hỏi của hệ thống.</p>
                 </div>
                 <button onClick={() => { setManagingExam(null); setQSearch(''); }} className="w-10 h-10 rounded-xl bg-white border border-gray-200 flex items-center justify-center text-gray-400 hover:text-gray-600 transition-all shadow-sm">
@@ -380,12 +292,7 @@ const AdminExams: React.FC = () => {
                   ) : examQuestions.filter(q => q.content.toLowerCase().includes(qSearch.toLowerCase())).length === 0 ? (
                     <div className="text-center py-10 text-gray-400 text-sm italic">Không tìm thấy câu hỏi nào.</div>
                   ) : examQuestions.filter(q => q.content.toLowerCase().includes(qSearch.toLowerCase())).map((q, i) => (
-                    <div key={q.questionId}
-                      draggable
-                      onDragStart={(e) => handleDragStart('exam', q.questionId, e)}
-                      onDragOver={(e) => handleDragOverItem(i, e)}
-                      onDrop={(e) => handleDropOnItem(i, e)}
-                      className={`p-3 border border-gray-100 rounded-xl bg-white shadow-sm flex items-start gap-3 group ${dragOverIndex === i ? 'ring-2 ring-dashed ring-green-200' : ''}`}>
+                    <div key={q.questionId} className="p-3 border border-gray-100 rounded-xl bg-white shadow-sm flex items-start gap-3 group">
                       <span className="w-6 h-6 rounded-lg bg-gray-100 text-gray-500 text-[10px] font-bold flex items-center justify-center flex-shrink-0">{i + 1}</span>
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-medium text-gray-800 leading-snug">{q.content}</p>
@@ -395,8 +302,6 @@ const AdminExams: React.FC = () => {
                       </button>
                     </div>
                   ))}
-                {/* Allow dropping at end */}
-                <div onDragOver={(e) => { e.preventDefault(); setDragOverIndex(examQuestions.length); }} onDrop={handleDropOnListEnd} />
                 </div>
               </div>
 
@@ -421,10 +326,7 @@ const AdminExams: React.FC = () => {
                   ) : availableQuestions.filter(q => q.content.toLowerCase().includes(bSearch.toLowerCase())).length === 0 ? (
                     <div className="text-center py-10 text-gray-400 text-sm italic">Không tìm thấy câu hỏi phù hợp.</div>
                   ) : availableQuestions.filter(q => q.content.toLowerCase().includes(bSearch.toLowerCase())).map(q => (
-                    <div key={q.questionId}
-                      draggable
-                      onDragStart={(e) => handleDragStart('bank', q.questionId, e)}
-                      className="p-3 border border-gray-100 rounded-xl bg-white shadow-sm flex items-start gap-3 hover:border-blue-200 transition-all group">
+                    <div key={q.questionId} className="p-3 border border-gray-100 rounded-xl bg-white shadow-sm flex items-start gap-3 hover:border-blue-200 transition-all group">
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-medium text-gray-800 leading-snug">{q.content}</p>
                         <span className="text-[10px] font-bold text-blue-500 uppercase mt-2 inline-block tracking-wider">{q.level}</span>

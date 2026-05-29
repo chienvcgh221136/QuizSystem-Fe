@@ -2,8 +2,9 @@ import { useState, useEffect, useRef } from 'react';
 import type { ReactNode } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { BookOpen, Bell, LogOut } from 'lucide-react';
+import { BookOpen, Bell, LogOut} from 'lucide-react';
 import { notificationsApi } from '../api/services';
+import UserChatbot from '../pages/user/UserChatbot';
 
 interface NotificationItem {
   notificationId: number;
@@ -228,9 +229,13 @@ const UserLayout = ({ children }: { children: ReactNode }) => {
         </div>
       </header>
 
-      <main className="flex-1 max-w-7xl w-full mx-auto px-8 py-7">
+   <main className="flex-1 max-w-7xl w-full mx-auto px-8 py-7">
         {children}
       </main>
+
+      {/* NHÚNG GIA SƯ AI VÀO MỌI TRANG CỦA USER */}
+      <UserChatbot />
+      
     </div>
   );
 };

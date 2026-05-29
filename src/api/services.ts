@@ -13,10 +13,9 @@ export const examsApi = {
   createFull: (data: object) => api.post('/Exams/full', data),
   update: (id: number, data: object) => api.put(`/Exams/${id}`, data),
   delete: (id: number) => api.delete(`/Exams/${id}`),
-  addQuestion: (examId: number, questionId: number, index?: number) => api.post(`/Exams/${examId}/questions/${questionId}${index ? `?index=${index}` : ''}`),
+  addQuestion: (examId: number, questionId: number) => api.post(`/Exams/${examId}/questions/${questionId}`),
   removeQuestion: (examId: number, questionId: number) => api.delete(`/Exams/${examId}/questions/${questionId}`),
   getAvailableQuestions: (examId: number) => api.get(`/Exams/${examId}/available-questions`),
-  reorderQuestions: (examId: number, orderedQuestionIds: number[]) => api.put(`/Exams/${examId}/questions/reorder`, orderedQuestionIds),
 };
 
 export const usersApi = {
@@ -48,6 +47,7 @@ export const examResultsApi = {
 
 export const chatbotApi = {
   chat: (message: string) => api.post('/Chatbot/ask', { message }),
+  tutor: (message: string) => api.post('/Chatbot/tutor', { message }),
 };
 
 export const adminApi = {
