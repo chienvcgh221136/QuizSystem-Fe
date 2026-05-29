@@ -16,7 +16,13 @@ export const examsApi = {
   addQuestion: (examId: number, questionId: number) => api.post(`/Exams/${examId}/questions/${questionId}`),
   removeQuestion: (examId: number, questionId: number) => api.delete(`/Exams/${examId}/questions/${questionId}`),
   getAvailableQuestions: (examId: number) => api.get(`/Exams/${examId}/available-questions`),
+  reorderQuestions: (examId: number, orderedQuestionIds: number[]) => api.put(`/Exams/${examId}/questions/reorder`, orderedQuestionIds),
+  parseVisionSmart: (formData: FormData) => api.post('/Exams/parse-vision-smart', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+    timeout: 300000, // 5 phút — Vision AI tốn thời gian
+  }),
 };
+
 
 export const usersApi = {
   getAll: () => api.get('/Users'),
@@ -30,8 +36,6 @@ export const usersApi = {
 export const questionsApi = {
   getAll: () => api.get('/Questions'),
   getCategories: () => api.get('/Questions/categories'),
-  getRandom: (category: string, level: string) =>
-    api.get(`/Questions/random?category=${category}&level=${level}`),
   create: (data: object) => api.post('/Questions', data),
   update: (id: number, data: object) => api.put(`/Questions/${id}`, data),
   delete: (id: number) => api.delete(`/Questions/${id}`),
@@ -46,8 +50,15 @@ export const examResultsApi = {
 };
 
 export const chatbotApi = {
-  chat: (message: string) => api.post('/Chatbot/ask', { message }),
-  tutor: (message: string) => api.post('/Chatbot/tutor', { message }),
+  chat: (message: string, fileContent?: string, fileName?: string, imageUrls?: string[]) =>
+    api.post('/Chatbot/ask', { message, fileContent, fileName, imageUrls }),
+  tutor: (message: string) =>
+    api.post('/Chatbot/tutor', { message }),
+  uploadFile: (formData: FormData) =>
+    api.post('/Chatbot/upload-file', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    }),
+  clearHistory: () => api.delete('/Chatbot/history'),
 };
 
 export const adminApi = {
@@ -59,4 +70,3 @@ export const notificationsApi = {
   getAll: () => api.get('/Notifications'),
   markAllRead: () => api.post('/Notifications/mark-all-read'),
 };
-

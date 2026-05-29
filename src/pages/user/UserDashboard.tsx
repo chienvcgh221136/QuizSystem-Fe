@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { examsApi, examResultsApi } from '../../api/services';
 import UserLayout from '../../layouts/UserLayout';
-import { Clock, FileText, Zap, RefreshCw, ChevronRight, CheckCircle2 } from 'lucide-react';
+import { Clock, FileText, Zap, ChevronRight, CheckCircle2 } from 'lucide-react';
 
 interface Exam { examId: number; title: string; description: string; category: string; level: string; timeLimit: number; totalScore: number; status: string; createdAt: string; }
 interface HistoryItem { resultId: number; examId: number; title: string; category: string; score: number; maxScore: number; startTime: string; submitTime: string; status: string; }
@@ -15,16 +15,6 @@ const UserDashboard: React.FC = () => {
   const [history, setHistory] = useState<HistoryItem[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const fetchData = React.useCallback(async (showLoading = true) => {
-    if (showLoading) setLoading(true);
-    try {
-      const [examsRes, historyRes] = await Promise.all([examsApi.getAll(), examResultsApi.getHistory()]);
-      const sorted = (examsRes.data as Exam[]).sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-      setExams(sorted);
-      setHistory(historyRes.data.slice(0, 5));
-    } catch (e) { console.error(e); }
-    finally { setLoading(false); }
-  }, []);
 
   useEffect(() => {
     let isMounted = true;
@@ -63,19 +53,11 @@ const UserDashboard: React.FC = () => {
     <UserLayout>
       <div className="flex flex-col gap-6">
         {/* Header */}
-        <div className="flex items-start justify-between">
-          <div>
-            <h1 className="text-3xl font-extrabold text-gray-900">
-              Chào mừng quay trở lại, {user?.fullName?.split(' ').pop() ?? user?.username}.
-            </h1>
-            <p className="text-gray-500 text-sm mt-1">Bạn có {exams.length} đề thi sẵn sàng trong tuần này.</p>
-          </div>
-          <button
-            onClick={() => fetchData()}
-            className="flex items-center gap-1.5 px-3.5 py-2 border border-gray-200 rounded-lg text-sm font-medium text-gray-500 hover:text-[#1a7a4a] hover:border-[#1a7a4a] bg-white transition-colors"
-          >
-            <RefreshCw size={14} /> Làm mới
-          </button>
+        <div>
+          <h1 className="text-3xl font-extrabold text-gray-900">
+            Chào mừng quay trở lại, {user?.fullName?.split(' ').pop() ?? user?.username}.
+          </h1>
+          <p className="text-gray-500 text-sm mt-1">Bạn có {exams.length} đề thi sẵn sàng trong tuần này.</p>
         </div>
 
         {/* Hero Banner (Non-AI) */}

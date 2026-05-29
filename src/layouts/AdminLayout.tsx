@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { BookOpen, LayoutDashboard, Users, Database, FileText, Bot, LogOut, PlusCircle, Bell } from 'lucide-react';
+import { BookOpen, LayoutDashboard, Users, Database, FileText, Bot, LogOut, PlusCircle } from 'lucide-react';
 
 const nav = [
   { to: '/admin/dashboard', icon: <LayoutDashboard size={17} />, label: 'Tổng quan' },
@@ -85,9 +85,6 @@ const AdminLayout = ({ children }: { children: ReactNode }) => {
                 className="pl-3 pr-3 py-1.5 border border-gray-200 rounded-lg text-[13px] outline-none focus:border-[#1a7a4a] bg-gray-50 w-48 transition-colors"
               />
             </div>
-            <button className="w-9 h-9 rounded-lg border border-gray-200 flex items-center justify-center text-gray-500 hover:text-[#1a7a4a] transition-colors">
-              <Bell size={16} />
-            </button>
             <div className="w-8 h-8 rounded-full bg-[#1a7a4a] text-white flex items-center justify-center text-xs font-bold">
               {user?.fullName?.charAt(0) ?? 'A'}
             </div>

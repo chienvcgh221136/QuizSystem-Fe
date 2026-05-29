@@ -1,7 +1,9 @@
 import React, { useState, useRef, useEffect } from 'react';
 import AdminLayout from '../../layouts/AdminLayout';
 import { chatbotApi, examsApi } from '../../api/services';
-import { Send, Bot, User, Pencil, Upload, Settings, Search, Bell, User as UserIcon, History as HistoryIcon } from 'lucide-react';
+import { Send, Bot, User, Pencil, Upload, Settings, Search, Bell, User as UserIcon, History as HistoryIcon, Paperclip, X, FileText } from 'lucide-react';
+import { stripCreatedByAI } from '../../utils/strings';
+import { getImageUrl } from '../../utils/imageUrl';
 import './AdminChatbot.css';
 
 interface QuestionDraft {
@@ -15,6 +17,7 @@ interface QuestionDraft {
 interface DraftExam {
   examId: number;
   title: string;
+  description?: string;
   category?: string;
   level?: string;
   status?: string;
@@ -22,12 +25,14 @@ interface DraftExam {
   totalScore?: number;
   questions?: QuestionDraft[];
   progress: number;
+  createdByAI?: boolean;
 }
 
 interface Msg {
   role: 'user' | 'ai';
   text: string;
   hasDraft?: boolean;
+  attachedFileName?: string;  // file attachment shown as card in bubble
 }
 
 interface ChatbotResponseDraft {
@@ -46,6 +51,13 @@ interface ChatbotResponseDraft {
   timeLimit?: number;
   totalScore?: number;
   questions?: QuestionDraft[];
+}
+
+interface AttachedFile {
+  name: string;
+  content: string;
+  charCount: number;
+  imageUrls?: string[];  // Ảnh upload lên Cloudinary
 }
 
 const repairTruncatedJson = (json: string) => {
@@ -218,6 +230,10 @@ const buildDraftFromResponse = (data: any) => {
   };
 };
 
+const mergeQuestionLists = (current: QuestionDraft[], newQs: QuestionDraft[]) => {
+  return [...current, ...newQs];
+};
+
 const AdminChatbot: React.FC = () => {
  // Khôi phục tin nhắn từ sessionStorage (nếu có)
   const [messages, setMessages] = useState<Msg[]>(() => {
@@ -230,6 +246,14 @@ const AdminChatbot: React.FC = () => {
 
   const [input, setInput] = useState('');
   const [sending, setSending] = useState(false);
+  const [attachedFile, setAttachedFile] = useState<AttachedFile | null>(null);
+  const [uploadingFile, setUploadingFile] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Track whether the current draftExam has been persisted to DB (has a real DB examId)
+  // We use a separate ref so we can distinguish fake random IDs from real DB IDs
+  const [dbExamId, setDbExamId] = useState<number | null>(null);
 
   // Khôi phục bản thảo đề thi từ sessionStorage (nếu có)
   const [draftExam, setDraftExam] = useState<DraftExam | null>(() => {
@@ -241,6 +265,12 @@ const AdminChatbot: React.FC = () => {
   });
   const [publishing, setPublishing] = useState(false);
   const [highlightDraft, setHighlightDraft] = useState(false);
+  const [toast, setToast] = useState<{message: string, type: 'success' | 'error' | 'info'} | null>(null);
+
+  const showToast = (message: string, type: 'success' | 'error' | 'info' = 'info') => {
+    setToast({ message, type });
+    setTimeout(() => setToast(null), 4000);
+  };
 
   const bottomRef = useRef<HTMLDivElement>(null);
   const draftRef = useRef<HTMLDivElement>(null);
@@ -261,15 +291,44 @@ const AdminChatbot: React.FC = () => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
+
+  const handleFileUpload = async (file: File) => {
+    const ext = file.name.split('.').pop()?.toLowerCase();
+    if (ext !== 'pdf' && ext !== 'docx') {
+      showToast(`Chỉ chấp nhận tệp định dạng .pdf hoặc .docx. Tệp "${file.name}" không được hỗ trợ.`, 'error');
+      return;
+    }
+    setUploadingFile(true);
+    try {
+      const fd = new FormData();
+      fd.append('file', file);
+      const res = await chatbotApi.uploadFile(fd);
+      const imgs: string[] = res.data.imageUrls ?? [];
+      setAttachedFile({ name: res.data.fileName, content: res.data.text, charCount: res.data.charCount, imageUrls: imgs });
+      const imgMsg = imgs.length > 0 ? ` + ${imgs.length} hình ảnh` : '';
+      showToast(`Đã đính kèm tài liệu "${res.data.fileName}" (${Math.round(res.data.charCount / 1000)}K ký tự${imgMsg}).`, 'success');
+    } catch (err: unknown) {
+      const errorMsg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message || 'Không thể đọc tệp. Vui lòng thử lại.';
+      showToast(errorMsg, 'error');
+    } finally {
+      setUploadingFile(false);
+    }
+  };
+
   const handleSend = async () => {
     if (!input.trim() || sending) return;
     const userMsg = input.trim();
+    const lowerUserMsg = userMsg.toLowerCase();
+    const isAddQuestionsRequest = lowerUserMsg.includes('thêm câu hỏi') || lowerUserMsg.includes('bổ sung') || lowerUserMsg.includes('tạo thêm');
+    
     setInput('');
-    setMessages(prev => [...prev, { role: 'user', text: userMsg }]);
+    setMessages(prev => [...prev, { role: 'user', text: userMsg, attachedFileName: attachedFile?.name }]);
     setSending(true);
 
     try {
-      const res = await chatbotApi.chat(userMsg);
+      const res = await chatbotApi.chat(userMsg, attachedFile?.content, attachedFile?.name, attachedFile?.imageUrls);
+      // Clear attached file after sending
+      setAttachedFile(null);
       const data = res.data;
       
       const draftData = buildDraftFromResponse(data);
@@ -282,8 +341,19 @@ const AdminChatbot: React.FC = () => {
       }
 
       if (draftData.hasDraft && draftData.questions) {
+        const currentQuestions = Array.isArray(draftExam?.questions) ? draftExam.questions : [];
+        const totalQuestions = isAddQuestionsRequest && currentQuestions.length > 0
+          ? mergeQuestionLists(currentQuestions, draftData.questions)
+          : draftData.questions;
+        const isModification = isAddQuestionsRequest || lowerUserMsg.includes('sửa') || lowerUserMsg.includes('thay đổi') || lowerUserMsg.includes('đổi');
+        
+        // Nếu đây là yêu cầu tạo đề mới hoàn toàn (không phải sửa/thêm câu hỏi),
+        // reset dbExamId để khi lưu sẽ tạo thành 1 record mới trong DB.
+        if (!isModification) {
+          setDbExamId(null);
+        }
+
         let p = 0;
-        const totalQuestions = draftData.questions;
         setDraftExam({
           examId: draftData.examId || Math.floor(Math.random() * 9000) + 1000,
           title: draftData.title || 'Đề thi mới tạo bởi AI',
@@ -316,11 +386,12 @@ const AdminChatbot: React.FC = () => {
       }
     } catch (err) {
       console.error(err);
-      setMessages(prev => [...prev, { role: 'ai', text: 'Đã xảy ra lỗi khi kết nối AI. Vui lòng thử lại bằng tiếng Việt hoặc rút gọn yêu cầu.' }]);
+      showToast('Đã xảy ra lỗi khi kết nối AI. Vui lòng thử lại bằng tiếng Việt hoặc rút gọn yêu cầu.', 'error');
     } finally {
       setSending(false);
     }
   };
+
 
   const handleViewDraft = () => {
     draftRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -334,56 +405,104 @@ const AdminChatbot: React.FC = () => {
 
   const handleSaveDraft = async () => {
     if (!draftExam) return;
+    if (draftExam.status === 'Draft' || draftExam.status === 'Published') {
+      showToast('Đề thi này đã được lưu trước đó.', 'info');
+      return;
+    }
     setPublishing(true);
     try {
-      const payload = {
-        title: draftExam.title,
-        category: draftExam.category,
-        level: draftExam.level || 'Trung cấp',
-        timeLimit: draftExam.timeLimit,
-        totalScore: draftExam.totalScore,
-        status: 'Draft',
-        questions: draftExam.questions?.map(q => ({
-          text: q.text,
-          type: q.type,
-          options: q.options,
-          answer: q.answer
-        }))
-      };
-      const res = await examsApi.createFull(payload);
-      setDraftExam(prev => prev ? { ...prev, examId: res.data.examId, status: 'Draft' } : null);
-      setMessages(prev => [...prev, { role: 'ai', text: `💾 Đề thi nháp "${draftExam.title}" đã được lưu vào cơ sở dữ liệu.` }]);
+      if (dbExamId) {
+        // Đã lưu nháp DB trước rồi -> chỉ cập nhật metadata
+        await examsApi.update(dbExamId, {
+          examId: dbExamId,
+          title: draftExam.title,
+          category: draftExam.category,
+          level: draftExam.level || 'Trung cấp',
+          timeLimit: draftExam.timeLimit,
+          totalScore: draftExam.totalScore,
+          status: 'Draft',
+        });
+        showToast(`Đề thi nháp "${stripCreatedByAI(draftExam.title)}" đã được cập nhật.`, 'success');
+      } else {
+        // Lần đầu lưu nháp -> tạo mới trong DB
+        const payload = {
+          title: draftExam.title,
+          category: draftExam.category,
+          createdByAI: draftExam.createdByAI || false,
+          level: draftExam.level || 'Trung cấp',
+          timeLimit: draftExam.timeLimit,
+          totalScore: draftExam.totalScore,
+          status: 'Draft',
+          questions: draftExam.questions?.map(q => ({
+            text: q.text,
+            type: q.type,
+            options: q.options,
+            answer: q.answer,
+            imageUrl: (q as any).imageUrl ?? null
+          }))
+        };
+        const res = await examsApi.createFull(payload);
+        const newDbId = res.data.examId;
+        setDbExamId(newDbId);
+        setDraftExam(prev => prev ? { ...prev, examId: newDbId, status: 'Draft' } : null);
+        showToast(`Đề thi nháp "${stripCreatedByAI(draftExam.title)}" đã được lưu (Mã: #${newDbId}).`, 'success');
+      }
     } catch (e) {
       console.error(e);
-      setMessages(prev => [...prev, { role: 'ai', text: '❌ Lưu nháp thất bại. Vui lòng kiểm tra kết nối.' }]);
-    }
-    finally { setPublishing(false); }
+      showToast('Lưu nháp thất bại. Vui lòng kiểm tra kết nối.', 'error');
+    } finally { setPublishing(false); }
   };
 
   const handlePublish = async () => {
     if (!draftExam) return;
+    if (draftExam.status === 'Published') {
+      showToast('Đề thi này đã được xuất bản trước đó.', 'info');
+      return;
+    }
     setPublishing(true);
     try {
-      const payload = {
-        title: draftExam.title,
-        category: draftExam.category,
-        level: draftExam.level || 'Trung cấp',
-        timeLimit: draftExam.timeLimit,
-        totalScore: draftExam.totalScore,
-        status: 'Published',
-        questions: draftExam.questions?.map(q => ({
-          text: q.text,
-          type: q.type,
-          options: q.options,
-          answer: q.answer
-        }))
-      };
-      const res = await examsApi.createFull(payload);
-      setDraftExam(prev => prev ? { ...prev, examId: res.data.examId, status: 'Published' } : null);
-      setMessages(prev => [...prev, { role: 'ai', text: `🚀 Thành công! Đề thi "${draftExam.title}" đã được xuất bản công khai.` }]);
+      if (dbExamId) {
+        // Đã có trong DB (nháp) -> chỉ cần update status thành Published
+        await examsApi.update(dbExamId, {
+          examId: dbExamId,
+          title: draftExam.title,
+          description: draftExam.description,
+          category: draftExam.category,
+          level: draftExam.level || 'Trung cấp',
+          timeLimit: draftExam.timeLimit,
+          totalScore: draftExam.totalScore,
+          status: 'Published',
+        });
+        setDraftExam(prev => prev ? { ...prev, status: 'Published' } : null);
+        showToast(`Thành công! Đề thi "${stripCreatedByAI(draftExam.title)}" đã được xuất bản công khai (Mã: #${dbExamId}).`, 'success');
+      } else {
+        // Chưa có trong DB -> tạo mới thẳng với status Published
+        const payload = {
+          title: draftExam.title,
+          description: draftExam.description,
+          createdByAI: draftExam.createdByAI || false,
+          category: draftExam.category,
+          level: draftExam.level || 'Trung cấp',
+          timeLimit: draftExam.timeLimit,
+          totalScore: draftExam.totalScore,
+          status: 'Published',
+          questions: draftExam.questions?.map(q => ({
+            text: q.text,
+            type: q.type,
+            options: q.options,
+            answer: q.answer,
+            imageUrl: (q as any).imageUrl ?? null
+          }))
+        };
+        const res = await examsApi.createFull(payload);
+        const newDbId = res.data.examId;
+        setDbExamId(newDbId);
+        setDraftExam(prev => prev ? { ...prev, examId: newDbId, status: 'Published' } : null);
+        showToast(`Thành công! Đề thi "${stripCreatedByAI(draftExam.title)}" đã được xuất bản công khai (Mã: #${newDbId}).`, 'success');
+      }
     } catch (e) {
       console.error(e);
-      setMessages(prev => [...prev, { role: 'ai', text: '❌ Xuất bản thất bại. Vui lòng thử lại.' }]);
+      showToast('Xuất bản thất bại. Vui lòng thử lại.', 'error');
     }
     finally { setPublishing(false); }
   };
@@ -409,19 +528,54 @@ const AdminChatbot: React.FC = () => {
 
       <div className="chatbot-container">
         {/* Main Chat Section */}
-        <div className="chat-section">
-          <div className="chat-header-custom">
-            <div className="w-10 h-10 rounded-xl bg-green-50 text-[#1a7a4a] flex items-center justify-center">
-              <Bot size={24} />
-            </div>
-            <div>
-              <h2>Trợ lý AI</h2>
-              <div className="flex items-center gap-1.5">
-                <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Đang hoạt động</span>
+        <div
+          className="chat-section relative"
+          onDragEnter={(e) => { e.preventDefault(); e.stopPropagation(); setIsDragging(true); }}
+          onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); }}
+          onDragLeave={(e) => { e.preventDefault(); e.stopPropagation(); if (!e.currentTarget.contains(e.relatedTarget as Node)) setIsDragging(false); }}
+          onDrop={async (e) => {
+            e.preventDefault(); e.stopPropagation(); setIsDragging(false);
+            const file = e.dataTransfer.files?.[0];
+            if (file) await handleFileUpload(file);
+          }}
+        >
+          {/* Drag-and-drop overlay */}
+          {isDragging && (
+            <div className="drop-overlay">
+              <div className="drop-overlay-inner">
+                <div className="drop-icon-ring">
+                  <Paperclip size={32} />
+                </div>
+                <p className="drop-title">Thả tệp vào đây</p>
+                <p className="drop-subtitle">Hỗ trợ tệp định dạng <strong>.PDF</strong> và <strong>.DOCX</strong></p>
               </div>
             </div>
+          )}
+          <div className="chatbot-header">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-green-50 text-[#1a7a4a] flex items-center justify-center">
+                <Bot size={24} />
+              </div>
+              <div>
+                <h2>Trợ lý AI</h2>
+                <div className="flex items-center gap-1.5">
+                  <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                  <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Đang hoạt động</span>
+                </div>
+              </div>
+            </div>
+
           </div>
+
+          {toast && (
+            <div className={`absolute top-20 left-1/2 -translate-x-1/2 z-50 px-4 py-2.5 rounded-lg shadow-lg border text-[13px] font-medium flex items-center gap-2 max-w-[85%] text-center transition-all duration-300 ${
+              toast.type === 'error' ? 'bg-red-50 text-red-600 border-red-100' : 
+              toast.type === 'success' ? 'bg-green-50 text-[#1a7a4a] border-green-100' : 
+              'bg-blue-50 text-blue-600 border-blue-100'
+            }`}>
+              {toast.message}
+            </div>
+          )}
 
           <div className="messages-container">
             {messages.map((msg, i) => (
@@ -430,8 +584,14 @@ const AdminChatbot: React.FC = () => {
                   {msg.role === 'ai' ? <Bot size={18} /> : <User size={18} />}
                 </div>
                 <div className="flex flex-col gap-2">
-                  <div className="bubble">
-                    {msg.text}
+                  <div className="bubble flex flex-col gap-2">
+                    {msg.attachedFileName && (
+                      <div className="flex items-center gap-2 px-3 py-2 bg-black/10 rounded-lg border border-black/5 w-fit">
+                        <FileText size={16} className="opacity-80" />
+                        <span className="text-xs font-semibold opacity-90">{msg.attachedFileName}</span>
+                      </div>
+                    )}
+                    {msg.text && <div>{msg.text}</div>}
                   </div>
                   {msg.hasDraft && (
                     <button
@@ -458,12 +618,97 @@ const AdminChatbot: React.FC = () => {
           </div>
 
           <div className="input-area-custom">
+            {/* File attachment chip */}
+          {attachedFile && (
+              <>
+                <div className="attached-file-chip">
+                  <FileText size={12} />
+                  <span className="attached-file-name">{attachedFile.name}</span>
+                  <span className="attached-file-meta">
+                    ({Math.round(attachedFile.charCount / 1000)}K ký tự
+                    {attachedFile.imageUrls && attachedFile.imageUrls.length > 0 && ` · ${attachedFile.imageUrls.length} ảnh`})
+                  </span>
+                  <button
+                    onClick={() => setAttachedFile(null)}
+                    className="attached-file-remove"
+                    title="Gỡ tệp đính kèm"
+                  >
+                    <X size={10} />
+                  </button>
+                </div>
+
+                {/* Hiển thị thumbnail ảnh đã đọc từ file */}
+                {attachedFile.imageUrls && attachedFile.imageUrls.length > 0 && (
+                  <div className="flex gap-2 px-1 pb-1 flex-wrap">
+                    {attachedFile.imageUrls.map((url, i) => (
+                      <div key={i} className="relative group">
+                        <img
+                          src={url}
+                          alt={`Ảnh ${i + 1}`}
+                          className="h-16 w-20 object-cover rounded-lg border border-violet-200 bg-gray-50 cursor-zoom-in"
+                          onClick={() => window.open(url, '_blank')}
+                        />
+                        <div className="absolute bottom-0 left-0 right-0 bg-black/50 text-white text-[8px] text-center rounded-b-lg opacity-0 group-hover:opacity-100 transition-opacity py-0.5">
+                          Ảnh {i + 1}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Simple hint row */}
+                <div className="file-guide-banner">
+                  <div className="file-guide-icon">💡</div>
+                  <div className="file-guide-content">
+                    <p className="file-guide-title">File chưa có đáp án / level? Ghi thêm vào ô bên dưới rồi gửi.</p>
+                    <p className="file-guide-desc">
+                      Ví dụ: <code>Đáp án: 1-A, 2-C, 3-B, 4-D. Level: Trung cấp. Hãy tạo đề từ file này.</code>
+                    </p>
+                  </div>
+                </div>
+              </>
+            )}
+
+
             <div className="input-wrapper-chat">
               <input
+                ref={fileInputRef}
+                type="file"
+                accept=".pdf,.docx"
+                style={{ display: 'none' }}
+                onChange={async (e) => {
+                  const file = e.target.files?.[0];
+                  if (!file) return;
+                  await handleFileUpload(file);
+                  e.target.value = '';
+                }}
+              />
+              <button
+                className={`upload-button-chat ${uploadingFile ? 'uploading' : ''} ${attachedFile ? 'has-file' : ''}`}
+                onClick={() => fileInputRef.current?.click()}
+                disabled={uploadingFile || sending}
+                title={attachedFile ? `Đang đính kèm: ${attachedFile.name}` : 'Tải lên tài liệu PDF/Word'}
+              >
+                {uploadingFile ? (
+                  <div className="w-3.5 h-3.5 border-2 border-gray-300 border-t-[#1a7a4a] rounded-full animate-spin" />
+                ) : (
+                  <Paperclip size={16} />
+                )}
+              </button>
+              <textarea
                 value={input}
                 onChange={e => setInput(e.target.value)}
-                onKeyDown={e => e.key === 'Enter' && handleSend()}
-                placeholder="Gửi tin nhắn cho trợ lý AI..."
+                onKeyDown={e => {
+                  if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    handleSend();
+                  }
+                }}
+                placeholder={attachedFile
+                  ? `Ghi thêm đáp án, level, hoặc yêu cầu... (Shift+Enter xuống dòng)`
+                  : 'Gửi tin nhắn cho trợ lý AI... (Shift+Enter xuống dòng)'}
+                rows={Math.min(5, Math.max(1, input.split('\n').length))}
+                className="chat-textarea"
               />
               <button
                 className="send-button-chat"
@@ -474,7 +719,7 @@ const AdminChatbot: React.FC = () => {
               </button>
             </div>
             <div className="text-center mt-3">
-              <span className="text-[10px] text-gray-400 font-medium italic">AI có thể nhầm lẫn. Hãy kiểm tra lại thông tin quan trọng.</span>
+              <span className="text-[10px] text-gray-400 font-medium italic">AI có thể nhầm lẫn. Hãy kiểm tra lại thông tin quan trọng.&nbsp;&nbsp;|&nbsp;&nbsp;<strong>Shift+Enter</strong> để xuống dòng.</span>
             </div>
           </div>
         </div>
@@ -559,7 +804,19 @@ const AdminChatbot: React.FC = () => {
                       <span className="question-tag">Câu hỏi {idx + 1}</span>
                       <span className="text-[10px] font-bold text-gray-400">{q.type}</span>
                     </div>
-                    <p className="text-sm font-bold text-gray-800 leading-relaxed mb-4">{q.text}</p>
+                    <p className="text-sm font-bold text-gray-800 leading-relaxed mb-3">{q.text}</p>
+
+                    {/* Hiển thị ảnh đính kèm câu hỏi (nếu có) */}
+                    {(q as any).imageUrl && (
+                      <div className="mb-3">
+                        <img
+                          src={getImageUrl((q as any).imageUrl)!}
+                          alt={`Ảnh câu hỏi ${idx + 1}`}
+                          className="w-full max-h-56 object-contain rounded-xl border border-violet-100 bg-gray-50"
+                          onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                        />
+                      </div>
+                    )}
 
                     {q.options && (
                       <div className="space-y-2">
@@ -576,11 +833,23 @@ const AdminChatbot: React.FC = () => {
                     {q.answer && (
                       <div className="mt-3 p-3 bg-green-50/50 rounded-xl border border-green-100 border-dashed">
                         <span className="text-[10px] font-black text-[#1a7a4a] block mb-1">ĐÁP ÁN:</span>
-                        <span className="text-xs text-[#1a7a4a] font-bold">{q.answer}</span>
+                        <span className="text-xs text-[#1a7a4a] font-bold">
+                          {(() => {
+                            const ans = (q.answer || '').toString().trim();
+                            if (ans.length === 1 && q.options && q.options.length > 0) {
+                              const idx = ans.toUpperCase().charCodeAt(0) - 65;
+                              if (idx >= 0 && idx < q.options.length) {
+                                return `${ans.toUpperCase()}: ${q.options[idx]}`;
+                              }
+                            }
+                            return ans;
+                          })()}
+                        </span>
                       </div>
                     )}
                   </div>
                 ))}
+
 
                 {draftExam.progress < 100 && (
                   <div className="flex items-center justify-center py-4 gap-2 text-gray-400">
@@ -589,26 +858,27 @@ const AdminChatbot: React.FC = () => {
                   </div>
                 )}
 
-                <div className="flex gap-2 mt-6">
+              <div className="flex gap-2 mt-6">
                   <button
                     onClick={handleEdit}
-                    className="flex-1 py-2.5 bg-gray-100 text-gray-700 text-xs font-bold rounded-xl hover:bg-gray-200 transition-all flex items-center justify-center gap-2"
+                    disabled={draftExam.progress < 100}
+                    className="flex-1 py-2.5 bg-gray-100 text-gray-700 text-xs font-bold rounded-xl hover:bg-gray-200 transition-all flex items-center justify-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed"
                   >
                     <Pencil size={14} /> Chỉnh sửa
                   </button>
                   <button
                     onClick={handleSaveDraft}
                     disabled={publishing || draftExam.progress < 100}
-                    className="flex-1 py-2.5 bg-white text-[#1a7a4a] border border-[#1a7a4a]/20 text-xs font-bold rounded-xl hover:bg-green-50 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                    className="flex-1 py-2.5 bg-white text-[#1a7a4a] border border-[#1a7a4a]/20 text-xs font-bold rounded-xl hover:bg-green-50 transition-all flex items-center justify-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed"
                   >
-                    {publishing ? 'Đang lưu...' : 'Lưu nháp'}
+                    {publishing ? 'Đang lưu...' : dbExamId ? 'Cập nhật nháp' : 'Lưu nháp'}
                   </button>
                   <button
                     onClick={handlePublish}
                     disabled={publishing || draftExam.progress < 100}
-                    className="flex-[1.5] py-2.5 bg-[#1a7a4a] text-white text-xs font-bold rounded-xl hover:bg-[#15633c] transition-all flex items-center justify-center gap-2 shadow-lg shadow-green-900/10 disabled:opacity-50"
+                    className="flex-[1.5] py-2.5 bg-[#1a7a4a] text-white text-xs font-bold rounded-xl hover:bg-[#15633c] transition-all flex items-center justify-center gap-2 shadow-lg shadow-green-900/10 disabled:opacity-40 disabled:cursor-not-allowed"
                   >
-                    <Upload size={14} /> {publishing ? 'Đang đăng...' : 'Xuất bản ngay'}
+                    <Upload size={14} /> {publishing ? 'Đang xử lý...' : dbExamId ? 'Xuất bản' : 'Xuất bản ngay'}
                   </button>
                 </div>
               </div>

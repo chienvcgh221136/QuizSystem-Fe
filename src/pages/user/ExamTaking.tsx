@@ -2,6 +2,7 @@ import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { examsApi, examResultsApi } from '../../api/services';
 import { Clock, Send, ChevronLeft, ChevronRight, CheckCircle, Info } from 'lucide-react';
+import { getImageUrl } from '../../utils/imageUrl';
 
 interface Question { 
   questionId: number; 
@@ -36,45 +37,99 @@ const ExamTaking: React.FC = () => {
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const questionRefs = useRef<(HTMLDivElement | null)[]>([]);
   const answersRef = useRef(answers);
+  const submittingRef = useRef(false);
+  const [timeExpired, setTimeExpired] = useState(false);
 
   useEffect(() => { answersRef.current = answers; }, [answers]);
 
-  const handleSubmit = useCallback(async () => {
-    if (submitting) return;
-    if (!window.confirm("Are you sure you want to submit your exam?")) return;
+  // Auto-submit: không hỏi confirm, gọi khi hết giờ
+  const autoSubmit = useCallback(async () => {
+    if (submittingRef.current) return;
+    submittingRef.current = true;
     setSubmitting(true);
+    setTimeExpired(true);
+    if (timerRef.current) clearInterval(timerRef.current);
+    try {
+      const payload = Object.entries(answersRef.current).map(([qId, opt]) => ({ questionId: Number(qId), selectedOption: opt }));
+      await examResultsApi.submit(Number(resultId), payload);
+      // Chờ 2 giây để user thấy overlay rồi redirect
+      setTimeout(() => navigate(`/user/result/${resultId}`), 2000);
+    } catch (e) {
+      console.error(e);
+      submittingRef.current = false;
+      setSubmitting(false);
+    }
+  }, [resultId, navigate]);
+
+  // Manual submit: hỏi confirm trước
+  const handleSubmit = useCallback(async () => {
+    if (submittingRef.current) return;
+    if (!window.confirm('Bạn có chắc chắn muốn nộp bài?')) return;
+    submittingRef.current = true;
+    setSubmitting(true);
+    if (timerRef.current) clearInterval(timerRef.current);
     try {
       const payload = Object.entries(answersRef.current).map(([qId, opt]) => ({ questionId: Number(qId), selectedOption: opt }));
       await examResultsApi.submit(Number(resultId), payload);
       navigate(`/user/result/${resultId}`);
-    } catch (e) { console.error(e); }
-    finally { setSubmitting(false); }
-  }, [resultId, navigate, submitting]);
+    } catch (e) {
+      console.error(e);
+      submittingRef.current = false;
+      setSubmitting(false);
+    }
+  }, [resultId, navigate]);
+
+  const endTimeRef = useRef<number>(0);
 
   useEffect(() => {
     examsApi.getFull(Number(examId)).then(res => {
       const data = res.data;
       setExam(data.examInfo);
       setQuestions(data.questions);
-      setTimeLeft((data.examInfo.timeLimit || 30) * 60);
+      const seconds = (data.examInfo.timeLimit || 30) * 60;
+      setTimeLeft(seconds);
+      // Lưu thời điểm kết thúc thực tế dựa vào đồng hồ thực
+      endTimeRef.current = Date.now() + seconds * 1000;
     }).catch(console.error).finally(() => setLoading(false));
   }, [examId]);
+
+  // Ref để timer luôn gọi được autoSubmit mới nhất mà không cần restart effect
+  const autoSubmitRef = useRef(autoSubmit);
+  useEffect(() => { autoSubmitRef.current = autoSubmit; }, [autoSubmit]);
 
   const hasTime = timeLeft > 0;
   useEffect(() => {
     if (!hasTime) return;
+    // Dùng Date.now() để tính thời gian còn lại — không bị nhảnh hưởng bởi throttle của trình duyệt
     timerRef.current = setInterval(() => {
-      setTimeLeft(t => { 
-        if (t <= 1) { 
-          clearInterval(timerRef.current!); 
-          handleSubmit(); 
-          return 0; 
-        } 
-        return t - 1; 
-      });
-    }, 1000);
+      const remaining = Math.round((endTimeRef.current - Date.now()) / 1000);
+      if (remaining <= 0) {
+        clearInterval(timerRef.current!);
+        setTimeLeft(0);
+        autoSubmitRef.current();
+      } else {
+        setTimeLeft(remaining);
+      }
+    }, 500); // 500ms để nhạy hơn khi quay lại tab
     return () => clearInterval(timerRef.current!);
-  }, [hasTime, handleSubmit]);
+  }, [hasTime]);
+
+  // Sync ngay khi quay lại tab (visibilitychange)
+  useEffect(() => {
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible' && endTimeRef.current > 0) {
+        const remaining = Math.round((endTimeRef.current - Date.now()) / 1000);
+        if (remaining <= 0) {
+          setTimeLeft(0);
+          autoSubmitRef.current();
+        } else {
+          setTimeLeft(remaining);
+        }
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibility);
+    return () => document.removeEventListener('visibilitychange', handleVisibility);
+  }, []);
 
   const formatTime = (s: number) => {
     const m = Math.floor(s / 60);
@@ -101,7 +156,24 @@ const ExamTaking: React.FC = () => {
   const isLowTime = timeLeft < 300;
 
   return (
-    <div className="min-h-screen bg-[#f8faf9] font-sans text-gray-900">
+    <div className="min-h-screen bg-[#f8faf9] font-sans text-gray-900 relative">
+      {/* Overlay hết giờ */}
+      {timeExpired && (
+        <div className="fixed inset-0 z-[999] bg-black/70 backdrop-blur-sm flex items-center justify-center">
+          <div className="bg-white rounded-3xl p-10 flex flex-col items-center gap-5 shadow-2xl text-center max-w-sm mx-4 animate-bounce-in">
+            <div className="w-20 h-20 rounded-full bg-red-100 flex items-center justify-center">
+              <Clock size={40} className="text-red-500" />
+            </div>
+            <div>
+              <h2 className="text-2xl font-black text-gray-900 mb-1">Hết giờ!</h2>
+              <p className="text-gray-500 text-sm">Bài thi đã được nộp tự động.<br />Đang chuyển đến trang kết quả...</p>
+            </div>
+            <div className="w-full h-1.5 bg-gray-100 rounded-full overflow-hidden">
+              <div className="h-full bg-red-500 rounded-full animate-[shrink_2s_linear_forwards]" style={{ width: '100%' }} />
+            </div>
+          </div>
+        </div>
+      )}
       {/* Top Navbar */}
       <nav className="h-16 bg-white border-b border-gray-200 sticky top-0 z-50 px-8 flex items-center justify-between shadow-sm">
         <div className="flex items-center gap-3">
@@ -153,7 +225,7 @@ const ExamTaking: React.FC = () => {
 
                       {q.imageUrl && (
                         <div className="mb-6 rounded-xl overflow-hidden border border-gray-200">
-                          <img src={q.imageUrl} alt="Ảnh câu hỏi" className="w-full object-cover max-h-72" />
+                          <img src={getImageUrl(q.imageUrl)!} alt="Ảnh câu hỏi" className="w-full object-contain max-h-72 bg-gray-50" />
                         </div>
                       )}
 
