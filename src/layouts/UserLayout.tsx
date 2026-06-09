@@ -106,7 +106,7 @@ const UserLayout = ({ children }: { children: ReactNode }) => {
     <div className="flex flex-col min-h-screen bg-gray-50 font-sans">
       {/* Topbar */}
       <header className="h-14 bg-white border-b border-gray-200 flex items-center px-7 gap-8 sticky top-0 z-50 shadow-sm">
-        <div className="flex items-center gap-2 text-[#1a7a4a] font-bold text-lg whitespace-nowrap">
+        <div className="flex items-center gap-2 text-[#1B8F3D] font-bold text-lg whitespace-nowrap">
           <BookOpen size={22} />
           <span>QuizChat</span>
         </div>
@@ -122,8 +122,8 @@ const UserLayout = ({ children }: { children: ReactNode }) => {
               className={({ isActive }) =>
                 `px-3.5 py-1.5 rounded-md text-sm font-medium transition-colors ${
                   isActive
-                    ? 'bg-green-50 text-[#1a7a4a] font-semibold'
-                    : 'text-gray-500 hover:text-[#1a7a4a] hover:bg-green-50'
+                    ? 'bg-green-50 text-[#1B8F3D] font-semibold'
+                    : 'text-gray-500 hover:text-[#1B8F3D] hover:bg-green-50'
                 }`
               }
             >
@@ -136,7 +136,7 @@ const UserLayout = ({ children }: { children: ReactNode }) => {
           <div className="relative" ref={dropdownRef}>
             <button 
               onClick={handleToggleDropdown}
-              className="relative w-9 h-9 rounded-lg border border-gray-200 flex items-center justify-center text-gray-500 hover:text-[#1a7a4a] hover:bg-gray-50 transition-colors"
+              className="relative w-9 h-9 rounded-lg border border-gray-200 flex items-center justify-center text-gray-500 hover:text-[#1B8F3D] hover:bg-gray-50 transition-colors"
             >
               <Bell size={17} />
               {unreadCount > 0 && (
@@ -155,7 +155,7 @@ const UserLayout = ({ children }: { children: ReactNode }) => {
                   {unreadCount > 0 && (
                     <button
                       onClick={handleMarkAllRead}
-                      className="text-[10px] font-bold text-[#1a7a4a] hover:underline"
+                      className="text-[10px] font-bold text-[#1B8F3D] hover:underline"
                     >
                       Đọc tất cả
                     </button>
@@ -185,7 +185,7 @@ const UserLayout = ({ children }: { children: ReactNode }) => {
                           }`}
                         >
                           <div className={`w-1.5 h-1.5 rounded-full mt-1.5 shrink-0 ${
-                            isUnread ? 'bg-[#1a7a4a]' : 'bg-transparent'
+                            isUnread ? 'bg-[#1B8F3D]' : 'bg-transparent'
                           }`} />
                           <div className="flex-1 min-w-0">
                             <p className="text-xs font-bold text-gray-800 truncate mb-0.5">{n.title}</p>
@@ -204,7 +204,7 @@ const UserLayout = ({ children }: { children: ReactNode }) => {
                 <div className="px-4 py-2 border-t border-gray-100 bg-gray-50 text-center">
                   <button
                     onClick={() => { setIsOpen(false); navigate('/user/exams'); }}
-                    className="text-[10px] font-bold text-[#1a7a4a] hover:text-[#146039]"
+                    className="text-[10px] font-bold text-[#1B8F3D] hover:text-[#146c2e]"
                   >
                     Xem tất cả đề thi
                   </button>
@@ -214,7 +214,7 @@ const UserLayout = ({ children }: { children: ReactNode }) => {
           </div>
 
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-full bg-[#1a7a4a] text-white flex items-center justify-center text-sm font-bold">
+            <div className="w-8 h-8 rounded-full bg-[#1B8F3D] text-white flex items-center justify-center text-sm font-bold">
               {user?.fullName?.charAt(0) ?? 'U'}
             </div>
             <span className="text-sm font-medium text-gray-800">{user?.fullName ?? user?.username}</span>

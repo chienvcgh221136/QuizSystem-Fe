@@ -507,26 +507,30 @@ const AdminChatbot: React.FC = () => {
     finally { setPublishing(false); }
   };
 
+  const isEmbed = window.self !== window.top;
+
   return (
     <AdminLayout>
       {/* Custom Header */}
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-black text-gray-900">QuizAI Pro</h1>
-        <div className="flex items-center gap-4">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
-            <input
-              type="text"
-              placeholder="Tìm kiếm tài nguyên..."
-              className="pl-10 pr-4 py-2 bg-gray-100 border-none rounded-full text-xs focus:ring-2 focus:ring-[#1a7a4a]/20 outline-none w-64"
-            />
+      {!isEmbed && (
+        <div className="flex items-center justify-between mb-6">
+          <h1 className="text-2xl font-black text-gray-900">QuizAI Pro</h1>
+          <div className="flex items-center gap-4">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
+              <input
+                type="text"
+                placeholder="Tìm kiếm tài nguyên..."
+                className="pl-10 pr-4 py-2 bg-gray-100 border-none rounded-full text-xs focus:ring-2 focus:ring-[#1B8F3D]/20 outline-none w-64"
+              />
+            </div>
+            <button className="p-2 text-gray-400 hover:text-[#1B8F3D] transition-colors"><Bell size={20} /></button>
+            <div className="w-8 h-8 rounded-full bg-[#1B8F3D]/10 flex items-center justify-center text-[#1B8F3D]"><UserIcon size={18} /></div>
           </div>
-          <button className="p-2 text-gray-400 hover:text-[#1a7a4a] transition-colors"><Bell size={20} /></button>
-          <div className="w-8 h-8 rounded-full bg-[#1a7a4a]/10 flex items-center justify-center text-[#1a7a4a]"><UserIcon size={18} /></div>
         </div>
-      </div>
+      )}
 
-      <div className="chatbot-container">
+      <div className={`chatbot-container ${isEmbed ? 'h-full m-0' : ''}`}>
         {/* Main Chat Section */}
         <div
           className="chat-section relative"
@@ -553,7 +557,7 @@ const AdminChatbot: React.FC = () => {
           )}
           <div className="chatbot-header">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-green-50 text-[#1a7a4a] flex items-center justify-center">
+              <div className="w-10 h-10 rounded-xl bg-green-50 text-[#1B8F3D] flex items-center justify-center">
                 <Bot size={24} />
               </div>
               <div>
@@ -570,7 +574,7 @@ const AdminChatbot: React.FC = () => {
           {toast && (
             <div className={`absolute top-20 left-1/2 -translate-x-1/2 z-50 px-4 py-2.5 rounded-lg shadow-lg border text-[13px] font-medium flex items-center gap-2 max-w-[85%] text-center transition-all duration-300 ${
               toast.type === 'error' ? 'bg-red-50 text-red-600 border-red-100' : 
-              toast.type === 'success' ? 'bg-green-50 text-[#1a7a4a] border-green-100' : 
+              toast.type === 'success' ? 'bg-green-50 text-[#1B8F3D] border-green-100' : 
               'bg-blue-50 text-blue-600 border-blue-100'
             }`}>
               {toast.message}
@@ -596,7 +600,7 @@ const AdminChatbot: React.FC = () => {
                   {msg.hasDraft && (
                     <button
                       onClick={handleViewDraft}
-                      className="flex items-center gap-2 self-start px-3 py-1.5 bg-[#1a7a4a]/10 text-[#1a7a4a] text-[10px] font-bold rounded-lg hover:bg-[#1a7a4a] hover:text-white transition-all border border-[#1a7a4a]/20"
+                      className="flex items-center gap-2 self-start px-3 py-1.5 bg-[#1B8F3D]/10 text-[#1B8F3D] text-[10px] font-bold rounded-lg hover:bg-[#1B8F3D] hover:text-white transition-all border border-[#1B8F3D]/20"
                     >
                       <HistoryIcon size={12} /> Xem đề thi nháp
                     </button>
@@ -690,7 +694,7 @@ const AdminChatbot: React.FC = () => {
                 title={attachedFile ? `Đang đính kèm: ${attachedFile.name}` : 'Tải lên tài liệu PDF/Word'}
               >
                 {uploadingFile ? (
-                  <div className="w-3.5 h-3.5 border-2 border-gray-300 border-t-[#1a7a4a] rounded-full animate-spin" />
+                  <div className="w-3.5 h-3.5 border-2 border-gray-300 border-t-[#1B8F3D] rounded-full animate-spin" />
                 ) : (
                   <Paperclip size={16} />
                 )}
@@ -749,7 +753,7 @@ const AdminChatbot: React.FC = () => {
                     <button
                       key={hint}
                       onClick={() => setInput(hint)}
-                      className="px-3 py-1.5 bg-gray-50 text-gray-500 text-[10px] font-bold rounded-lg hover:bg-[#1a7a4a] hover:text-white transition-all"
+                      className="px-3 py-1.5 bg-gray-50 text-gray-500 text-[10px] font-bold rounded-lg hover:bg-[#1B8F3D] hover:text-white transition-all"
                     >
                       {hint}
                     </button>
@@ -771,11 +775,11 @@ const AdminChatbot: React.FC = () => {
                 <div className={`draft-card ${highlightDraft ? 'active' : ''}`}>
                   <div className="flex items-center justify-between mb-3">
                     <div className="flex items-center gap-1.5">
-                      <span className="text-[10px] font-black text-[#1a7a4a] bg-green-50 px-2 py-0.5 rounded">NHÁP</span>
+                      <span className="text-[10px] font-black text-[#1B8F3D] bg-green-50 px-2 py-0.5 rounded">NHÁP</span>
                       {draftExam.level && (
                         <span className={`text-[10px] font-black px-2 py-0.5 rounded uppercase tracking-wider ${draftExam.level === 'Sơ cấp' ? 'text-blue-600 bg-blue-50 border border-blue-100' :
                             draftExam.level === 'Cao cấp' ? 'text-amber-600 bg-amber-50 border border-amber-100' :
-                              'text-[#1a7a4a] bg-green-50 border border-green-100'
+                              'text-[#1B8F3D] bg-green-50 border border-green-100'
                           }`}>
                           {draftExam.level}
                         </span>
@@ -832,8 +836,8 @@ const AdminChatbot: React.FC = () => {
                     )}
                     {q.answer && (
                       <div className="mt-3 p-3 bg-green-50/50 rounded-xl border border-green-100 border-dashed">
-                        <span className="text-[10px] font-black text-[#1a7a4a] block mb-1">ĐÁP ÁN:</span>
-                        <span className="text-xs text-[#1a7a4a] font-bold">
+                        <span className="text-[10px] font-black text-[#1B8F3D] block mb-1">ĐÁP ÁN:</span>
+                        <span className="text-xs text-[#1B8F3D] font-bold">
                           {(() => {
                             const ans = (q.answer || '').toString().trim();
                             if (ans.length === 1 && q.options && q.options.length > 0) {
@@ -853,7 +857,7 @@ const AdminChatbot: React.FC = () => {
 
                 {draftExam.progress < 100 && (
                   <div className="flex items-center justify-center py-4 gap-2 text-gray-400">
-                    <div className="w-3 h-3 border-2 border-gray-200 border-t-[#1a7a4a] rounded-full animate-spin"></div>
+                    <div className="w-3 h-3 border-2 border-gray-200 border-t-[#1B8F3D] rounded-full animate-spin"></div>
                     <span className="text-[10px] font-bold uppercase tracking-widest">AI đang làm việc...</span>
                   </div>
                 )}
@@ -869,14 +873,14 @@ const AdminChatbot: React.FC = () => {
                   <button
                     onClick={handleSaveDraft}
                     disabled={publishing || draftExam.progress < 100}
-                    className="flex-1 py-2.5 bg-white text-[#1a7a4a] border border-[#1a7a4a]/20 text-xs font-bold rounded-xl hover:bg-green-50 transition-all flex items-center justify-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed"
+                    className="flex-1 py-2.5 bg-white text-[#1B8F3D] border border-[#1B8F3D]/20 text-xs font-bold rounded-xl hover:bg-green-50 transition-all flex items-center justify-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed"
                   >
                     {publishing ? 'Đang lưu...' : dbExamId ? 'Cập nhật nháp' : 'Lưu nháp'}
                   </button>
                   <button
                     onClick={handlePublish}
                     disabled={publishing || draftExam.progress < 100}
-                    className="flex-[1.5] py-2.5 bg-[#1a7a4a] text-white text-xs font-bold rounded-xl hover:bg-[#15633c] transition-all flex items-center justify-center gap-2 shadow-lg shadow-green-900/10 disabled:opacity-40 disabled:cursor-not-allowed"
+                    className="flex-[1.5] py-2.5 bg-[#1B8F3D] text-white text-xs font-bold rounded-xl hover:bg-[#15633c] transition-all flex items-center justify-center gap-2 shadow-lg shadow-green-900/10 disabled:opacity-40 disabled:cursor-not-allowed"
                   >
                     <Upload size={14} /> {publishing ? 'Đang xử lý...' : dbExamId ? 'Xuất bản' : 'Xuất bản ngay'}
                   </button>

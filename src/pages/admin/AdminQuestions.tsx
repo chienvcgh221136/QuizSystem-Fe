@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import AdminLayout from '../../layouts/AdminLayout';
 import { questionsApi, examsApi } from '../../api/services';
-import { PlusCircle, Search, Edit2, Trash2, Filter, Database, X, Check, Upload, FileText, Image, Loader2, AlertCircle, ChevronDown, ChevronUp, Eye } from 'lucide-react';
+import { PlusCircle, Search, Edit2, Trash2, Filter, Database, X, Check, Upload, FileText, Image, Loader2, AlertCircle, ChevronDown, ChevronUp, Eye, Download } from 'lucide-react';
 import { getImageUrl } from '../../utils/imageUrl';
 
 interface Question {
@@ -46,6 +46,12 @@ const AdminQuestions: React.FC = () => {
   const [categories, setCategories] = useState<string[]>([]);
   const [selectedCat, setSelectedCat] = useState('All');
   const [selectedLevel, setSelectedLevel] = useState('All');
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 20;
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search, selectedCat, selectedLevel]);
 
   // Import vision states
   const [showImportModal, setShowImportModal] = useState(false);
@@ -59,6 +65,13 @@ const AdminQuestions: React.FC = () => {
   const [expandedQuestions, setExpandedQuestions] = useState<Set<number>>(new Set());
   const [checkedQuestions, setCheckedQuestions] = useState<Set<number>>(new Set());
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Export Excel states
+  const [showExportModal, setShowExportModal] = useState(false);
+  const [exportAll, setExportAll] = useState(true);
+  const [exportCat, setExportCat] = useState('All');
+  const [exportLevel, setExportLevel] = useState('All');
+  const [exporting, setExporting] = useState(false);
 
   const fetchQuestions = React.useCallback(async () => {
     setLoading(true);
@@ -217,6 +230,57 @@ const AdminQuestions: React.FC = () => {
     setShowImportModal(false);
   };
 
+  const handleExport = async () => {
+    setExporting(true);
+    try {
+      let url = `${import.meta.env.VITE_API_URL}/Questions/export?`;
+      if (!exportAll) {
+        url += `category=${encodeURIComponent(exportCat)}&level=${encodeURIComponent(exportLevel)}`;
+        if (search) {
+          url += `&search=${encodeURIComponent(search)}`;
+        }
+      } else {
+        url += `category=All&level=All`;
+      }
+      // append cache buster just in case
+      url += `&t=${new Date().getTime()}`;
+      
+      const res = await fetch(url, {
+        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+      });
+      
+      if (!res.ok) throw new Error('Network response was not ok');
+      const blob = await res.blob();
+      const downloadUrl = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = downloadUrl;
+
+      // Custom file name based on filters
+      let fileName = 'NganHangCauHoi.xlsx';
+      if (!exportAll) {
+        const parts = [];
+        if (exportCat !== 'All') parts.push(exportCat);
+        if (exportLevel !== 'All') parts.push(exportLevel);
+        if (search) parts.push(`TimKiem_${search.substring(0,20)}`);
+        if (parts.length > 0) {
+          fileName = `${parts.join(' - ')}.xlsx`;
+        }
+      }
+      a.download = fileName;
+
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(downloadUrl);
+      setShowExportModal(false);
+    } catch (e) {
+      console.error(e);
+      alert('Có lỗi xảy ra khi xuất Excel');
+    } finally {
+      setExporting(false);
+    }
+  };
+
   const filtered = questions.filter(q => {
     const matchSearch = q.content.toLowerCase().includes(search.toLowerCase()) ||
       q.category.toLowerCase().includes(search.toLowerCase());
@@ -224,6 +288,22 @@ const AdminQuestions: React.FC = () => {
     const matchLevel = selectedLevel === 'All' || q.level === selectedLevel;
     return matchSearch && matchCat && matchLevel;
   });
+
+  const totalPages = Math.ceil(filtered.length / itemsPerPage);
+  const paginatedQuestions = filtered.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+
+  const openExportModal = () => {
+    if (selectedCat !== 'All' || selectedLevel !== 'All' || search) {
+      setExportAll(false);
+      setExportCat(selectedCat);
+      setExportLevel(selectedLevel);
+    } else {
+      setExportAll(true);
+      setExportCat('All');
+      setExportLevel('All');
+    }
+    setShowExportModal(true);
+  };
 
   return (
     <AdminLayout>
@@ -237,8 +317,15 @@ const AdminQuestions: React.FC = () => {
           <div className="flex items-center gap-3">
 
             <button
+              onClick={openExportModal}
+              className="flex items-center gap-2 bg-white text-[#1B8F3D] border border-[#1B8F3D]/30 px-5 py-2.5 rounded-xl font-bold hover:bg-[#1B8F3D]/5 transition-all shadow-sm active:scale-95"
+            >
+              <Download size={18} />
+              Xuất Excel
+            </button>
+            <button
               onClick={openCreate}
-              className="flex items-center gap-2 bg-[#1a7a4a] text-white px-5 py-2.5 rounded-xl font-bold hover:bg-[#15633c] transition-all shadow-lg shadow-green-900/10 active:scale-95"
+              className="flex items-center gap-2 bg-[#1B8F3D] text-white px-5 py-2.5 rounded-xl font-bold hover:bg-[#146c2e] transition-all shadow-lg shadow-green-900/10 active:scale-95"
             >
               <PlusCircle size={18} />
               Thêm câu hỏi
@@ -254,21 +341,21 @@ const AdminQuestions: React.FC = () => {
               <input
                 type="text"
                 placeholder="Tìm kiếm nội dung câu hỏi..."
-                className="w-full pl-10 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-[#1a7a4a]/20 focus:border-[#1a7a4a] outline-none transition-all"
+                className="w-full pl-10 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-[#1B8F3D]/20 focus:border-[#1B8F3D] outline-none transition-all"
                 value={search}
                 onChange={e => setSearch(e.target.value)}
               />
             </div>
             <div className="flex items-center gap-2 text-sm text-gray-500 font-medium">
               <Filter size={16} />
-              <span className="text-[#1a7a4a] font-bold">{filtered.length}</span> / {questions.length} câu hỏi
+              <span className="text-[#1B8F3D] font-bold">{filtered.length}</span> / {questions.length} câu hỏi
             </div>
           </div>
           <div className="flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar">
             <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mr-2">Danh mục:</span>
             {['All', ...categories].map(cat => (
               <button key={cat} onClick={() => setSelectedCat(cat)}
-                className={`px-4 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all border ${selectedCat === cat ? 'bg-[#1a7a4a] text-white border-[#1a7a4a] shadow-md shadow-green-900/10' : 'bg-white text-gray-500 border-gray-200 hover:border-[#1a7a4a]/30 hover:text-gray-700 shadow-sm'}`}>
+                className={`px-4 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all border ${selectedCat === cat ? 'bg-[#1B8F3D] text-white border-[#1B8F3D] shadow-md shadow-green-900/10' : 'bg-white text-gray-500 border-gray-200 hover:border-[#1B8F3D]/30 hover:text-gray-700 shadow-sm'}`}>
                 {cat === 'All' ? 'Tất cả' : cat}
               </button>
             ))}
@@ -277,7 +364,7 @@ const AdminQuestions: React.FC = () => {
             <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mr-2">Độ khó:</span>
             {['All', 'Sơ cấp', 'Trung cấp', 'Cao cấp'].map(lvl => (
               <button key={lvl} onClick={() => setSelectedLevel(lvl)}
-                className={`px-4 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all border ${selectedLevel === lvl ? 'bg-[#1a7a4a] text-white border-[#1a7a4a] shadow-md shadow-green-900/10' : 'bg-white text-gray-500 border-gray-200 hover:border-[#1a7a4a]/30 hover:text-gray-700 shadow-sm'}`}>
+                className={`px-4 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all border ${selectedLevel === lvl ? 'bg-[#1B8F3D] text-white border-[#1B8F3D] shadow-md shadow-green-900/10' : 'bg-white text-gray-500 border-gray-200 hover:border-[#1B8F3D]/30 hover:text-gray-700 shadow-sm'}`}>
                 {lvl === 'All' ? 'Tất cả' : lvl}
               </button>
             ))}
@@ -290,13 +377,15 @@ const AdminQuestions: React.FC = () => {
             <div className="text-center py-20 text-gray-400">Đang tải dữ liệu...</div>
           ) : filtered.length === 0 ? (
             <div className="text-center py-20 text-gray-400 bg-white border border-dashed border-gray-200 rounded-2xl">Không tìm thấy câu hỏi nào.</div>
-          ) : filtered.map(q => (
-            <div key={q.questionId} className="bg-white border border-gray-200 rounded-2xl p-5 hover:border-[#1a7a4a]/30 transition-all shadow-sm group">
+          ) : (
+            <>
+              {paginatedQuestions.map(q => (
+                <div key={q.questionId} className="bg-white border border-gray-200 rounded-2xl p-5 hover:border-[#1B8F3D]/30 transition-all shadow-sm group">
               <div className="flex items-start justify-between gap-4">
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-2 flex-wrap">
                     <span className="px-2.5 py-0.5 bg-gray-100 text-gray-500 text-[10px] font-bold rounded-full">ID: {q.questionId}</span>
-                    <span className="px-2.5 py-0.5 bg-green-50 text-[#1a7a4a] text-[10px] font-bold rounded-full uppercase tracking-wider">{q.category}</span>
+                    <span className="px-2.5 py-0.5 bg-green-50 text-[#1B8F3D] text-[10px] font-bold rounded-full uppercase tracking-wider">{q.category}</span>
                     <span className="px-2.5 py-0.5 bg-blue-50 text-blue-600 text-[10px] font-bold rounded-full uppercase tracking-wider">{q.level}</span>
                     {q.imageUrl && (
                       <span className="px-2.5 py-0.5 bg-violet-50 text-violet-600 text-[10px] font-bold rounded-full flex items-center gap-1">
@@ -349,7 +438,31 @@ const AdminQuestions: React.FC = () => {
                 </div>
               </div>
             </div>
-          ))}
+              ))}
+              
+              {totalPages > 1 && (
+                <div className="flex justify-center items-center gap-6 mt-4 pt-4 border-t border-gray-100">
+                  <button
+                    onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                    disabled={currentPage === 1}
+                    className="text-sm font-medium text-[#1B8F3D] hover:text-[#146c2e] disabled:text-gray-300 transition-colors"
+                  >
+                    Trang trước
+                  </button>
+                  <span className="text-sm text-gray-600 font-medium">
+                    Hiển thị trang {currentPage} / {totalPages}
+                  </span>
+                  <button
+                    onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                    disabled={currentPage === totalPages}
+                    className="text-sm font-medium text-[#1B8F3D] hover:text-[#146c2e] disabled:text-gray-300 transition-colors"
+                  >
+                    Trang sau
+                  </button>
+                </div>
+              )}
+            </>
+          )}
         </div>
 
         {/* ── MODAL: Tạo / Sửa câu hỏi ──────────────────────────────────────── */}
@@ -358,7 +471,7 @@ const AdminQuestions: React.FC = () => {
             <div className="bg-white rounded-3xl w-full max-w-2xl overflow-hidden shadow-2xl max-h-[90vh] flex flex-col">
               <div className="p-6 border-b border-gray-100 flex items-center justify-between bg-gray-50/50 shrink-0">
                 <div className="flex items-center gap-2.5">
-                  <div className="w-10 h-10 rounded-xl bg-green-50 text-[#1a7a4a] flex items-center justify-center">
+                  <div className="w-10 h-10 rounded-xl bg-green-50 text-[#1B8F3D] flex items-center justify-center">
                     <Database size={20} />
                   </div>
                   <h3 className="text-xl font-black text-gray-900">{editingQ ? 'Sửa câu hỏi' : 'Tạo câu hỏi mới'}</h3>
@@ -370,7 +483,7 @@ const AdminQuestions: React.FC = () => {
                 <div>
                   <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Nội dung câu hỏi</label>
                   <textarea required
-                    className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-2xl text-sm focus:ring-2 focus:ring-[#1a7a4a]/20 focus:border-[#1a7a4a] outline-none transition-all min-h-[100px]"
+                    className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-2xl text-sm focus:ring-2 focus:ring-[#1B8F3D]/20 focus:border-[#1B8F3D] outline-none transition-all min-h-[100px]"
                     value={form.content}
                     onChange={e => setForm({ ...form, content: e.target.value })}
                   />
@@ -452,7 +565,7 @@ const AdminQuestions: React.FC = () => {
                   <div>
                     <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Danh mục</label>
                     <select required
-                      className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm outline-none focus:border-[#1a7a4a]"
+                      className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm outline-none focus:border-[#1B8F3D]"
                       value={form.category}
                       onChange={e => setForm({ ...form, category: e.target.value })}>
                       <option value="">-- Chọn danh mục --</option>
@@ -461,7 +574,7 @@ const AdminQuestions: React.FC = () => {
                     </select>
                     {form.category === 'New' && (
                       <input type="text" placeholder="Nhập tên danh mục mới..."
-                        className="w-full mt-2 px-4 py-2 bg-white border border-[#1a7a4a] rounded-xl text-sm outline-none" autoFocus
+                        className="w-full mt-2 px-4 py-2 bg-white border border-[#1B8F3D] rounded-xl text-sm outline-none" autoFocus
                         onBlur={e => {
                           if (e.target.value) {
                             setForm({ ...form, category: e.target.value });
@@ -473,7 +586,7 @@ const AdminQuestions: React.FC = () => {
                   </div>
                   <div>
                     <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Độ khó</label>
-                    <select className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm outline-none focus:border-[#1a7a4a]"
+                    <select className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm outline-none focus:border-[#1B8F3D]"
                       value={form.level} onChange={e => setForm({ ...form, level: e.target.value })}>
                       <option>Sơ cấp</option><option>Trung cấp</option><option>Cao cấp</option>
                     </select>
@@ -483,11 +596,11 @@ const AdminQuestions: React.FC = () => {
                 <div className="space-y-3">
                   <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Các đáp án (Tích chọn đáp án đúng)</label>
                   {form.options.map((opt, idx) => (
-                    <div key={idx} className={`flex items-center gap-3 p-2 rounded-2xl border transition-all ${form.correctOption === idx ? 'bg-green-50 border-[#1a7a4a] shadow-sm' : 'bg-gray-50 border-gray-100'}`}>
+                    <div key={idx} className={`flex items-center gap-3 p-2 rounded-2xl border transition-all ${form.correctOption === idx ? 'bg-green-50 border-[#1B8F3D] shadow-sm' : 'bg-gray-50 border-gray-100'}`}>
                       <label className="flex items-center cursor-pointer p-2">
                         <input type="radio" name="correctOption" checked={form.correctOption === idx}
                           onChange={() => setForm({ ...form, correctOption: idx })}
-                          className="w-4 h-4 text-[#1a7a4a] focus:ring-[#1a7a4a]" />
+                          className="w-4 h-4 text-[#1B8F3D] focus:ring-[#1B8F3D]" />
                       </label>
                       <span className="text-xs font-bold text-gray-400 w-4">{String.fromCharCode(65 + idx)}</span>
                       <input type="text" required placeholder={`Nhập đáp án ${String.fromCharCode(65 + idx)}...`}
@@ -505,7 +618,7 @@ const AdminQuestions: React.FC = () => {
                 <div>
                   <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Giải thích đáp án (Tùy chọn)</label>
                   <textarea
-                    className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-2xl text-sm focus:ring-2 focus:ring-[#1a7a4a]/20 focus:border-[#1a7a4a] outline-none transition-all min-h-[80px]"
+                    className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-2xl text-sm focus:ring-2 focus:ring-[#1B8F3D]/20 focus:border-[#1B8F3D] outline-none transition-all min-h-[80px]"
                     placeholder="Giải thích tại sao đáp án này đúng..."
                     value={form.explanation}
                     onChange={e => setForm({ ...form, explanation: e.target.value })}
@@ -515,7 +628,7 @@ const AdminQuestions: React.FC = () => {
                 <div className="pt-4 flex gap-3">
                   <button type="button" onClick={() => setShowModal(false)} className="flex-1 py-3 text-gray-500 font-bold hover:bg-gray-50 rounded-xl transition-all">Hủy</button>
                   <button type="submit" disabled={saving}
-                    className="flex-[2] bg-[#1a7a4a] text-white py-3 rounded-xl font-bold hover:bg-[#15633c] transition-all flex items-center justify-center gap-2 shadow-lg shadow-green-900/10">
+                    className="flex-[2] bg-[#1B8F3D] text-white py-3 rounded-xl font-bold hover:bg-[#15633c] transition-all flex items-center justify-center gap-2 shadow-lg shadow-green-900/10">
                     {saving ? 'Đang lưu...' : <><Check size={20} /> Lưu câu hỏi</>}
                   </button>
                 </div>
@@ -748,6 +861,61 @@ const AdminQuestions: React.FC = () => {
                   </button>
                 </div>
               )}
+            </div>
+          </div>
+        )}
+
+        {/* ── MODAL: Export Excel ──────────────────────────────────── */}
+        {showExportModal && (
+          <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-6">
+            <div className="bg-white rounded-3xl w-full max-w-md overflow-hidden shadow-2xl flex flex-col">
+              <div className="p-5 border-b border-gray-100 flex items-center justify-between bg-gray-50/50">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-9 h-9 rounded-xl bg-green-50 text-[#1B8F3D] flex items-center justify-center">
+                    <Download size={18} />
+                  </div>
+                  <h3 className="text-lg font-black text-gray-900">Xuất dữ liệu Excel</h3>
+                </div>
+                <button onClick={() => setShowExportModal(false)} className="text-gray-400 hover:text-gray-600"><X size={20} /></button>
+              </div>
+
+              <div className="p-6 space-y-5">
+                <label className="flex items-center gap-3 p-3 rounded-xl border border-gray-200 cursor-pointer hover:bg-gray-50 transition-colors">
+                  <input type="checkbox" checked={exportAll} onChange={e => setExportAll(e.target.checked)} className="w-5 h-5 text-[#1B8F3D] rounded border-gray-300" />
+                  <span className="font-semibold text-gray-800">Xuất tất cả câu hỏi</span>
+                </label>
+
+                {!exportAll && (
+                  <div className="space-y-4 pt-2 border-t border-gray-100">
+                    <div>
+                      <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Danh mục</label>
+                      <select className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm outline-none focus:border-[#1B8F3D]"
+                        value={exportCat} onChange={e => setExportCat(e.target.value)}>
+                        <option value="All">Tất cả danh mục</option>
+                        {categories.map(c => <option key={c} value={c}>{c}</option>)}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Độ khó</label>
+                      <select className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm outline-none focus:border-[#1B8F3D]"
+                        value={exportLevel} onChange={e => setExportLevel(e.target.value)}>
+                        <option value="All">Tất cả mức độ</option>
+                        <option value="Sơ cấp">Sơ cấp</option>
+                        <option value="Trung cấp">Trung cấp</option>
+                        <option value="Cao cấp">Cao cấp</option>
+                      </select>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <div className="p-5 border-t border-gray-100 bg-gray-50 flex gap-3">
+                <button onClick={() => setShowExportModal(false)} className="flex-1 py-2.5 text-gray-600 font-bold hover:bg-gray-200 rounded-xl transition-all">Hủy</button>
+                <button onClick={handleExport} disabled={exporting}
+                  className="flex-1 bg-[#1B8F3D] text-white py-2.5 rounded-xl font-bold hover:bg-[#146c2e] transition-all flex items-center justify-center gap-2 shadow-lg shadow-green-900/10 disabled:opacity-50">
+                  {exporting ? <Loader2 size={18} className="animate-spin" /> : <><Download size={18} /> Tải xuống</>}
+                </button>
+              </div>
             </div>
           </div>
         )}

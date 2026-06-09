@@ -42,7 +42,7 @@ const ExamResult: React.FC = () => {
   return (
     <UserLayout>
       <div className="max-w-3xl mx-auto flex flex-col gap-6">
-        <button onClick={() => navigate('/user/history')} className="inline-flex items-center gap-1.5 text-sm text-gray-400 hover:text-[#1a7a4a] transition-colors bg-none border-none">
+        <button onClick={() => navigate('/user/history')} className="inline-flex items-center gap-1.5 text-sm text-gray-400 hover:text-[#1B8F3D] transition-colors bg-none border-none">
           <ArrowLeft size={14} /> Quay lại lịch sử
         </button>
 
@@ -52,7 +52,7 @@ const ExamResult: React.FC = () => {
             <Trophy size={36} className={passed ? 'text-green-600' : 'text-red-500'} />
           </div>
           <h2 className="text-xl font-bold text-gray-900">{resultInfo.examTitle}</h2>
-          <div className={`text-5xl font-black ${passed ? 'text-[#1a7a4a]' : 'text-red-500'}`}>
+          <div className={`text-5xl font-black ${passed ? 'text-[#1B8F3D]' : 'text-red-500'}`}>
             {resultInfo.score}/{resultInfo.maxScore}
           </div>
           <span className={`text-sm font-bold px-5 py-1.5 rounded-full ${passed ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-600'}`}>

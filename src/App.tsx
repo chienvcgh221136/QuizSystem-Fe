@@ -15,6 +15,13 @@ import AllExams from './pages/user/AllExams';
 
 const PrivateRoute = ({ children, roles }: { children: React.ReactNode, roles?: string[] }) => {
   const { user } = useAuth();
+  
+  // Nếu có token trên URL thì đang trong quá trình auto-login từ QuizSystemApp
+  // Không redirect về login vội, để AuthProvider xử lý trước
+  const urlParams = new URLSearchParams(window.location.search);
+  const hasUrlToken = urlParams.get('token');
+  
+  if (!user && hasUrlToken) return null; // Đang load, chờ AuthProvider xử lý
   if (!user) return <Navigate to="/login" replace />;
   if (roles && !roles.includes(user.role)) return <Navigate to="/login" replace />;
   return <>{children}</>;

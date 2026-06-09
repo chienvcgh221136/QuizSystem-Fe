@@ -61,7 +61,7 @@ const UserDashboard: React.FC = () => {
         </div>
 
         {/* Hero Banner (Non-AI) */}
-        <div className="bg-gradient-to-r from-[#0f3d24] to-[#1a7a4a] rounded-2xl p-8 flex items-center gap-10 relative overflow-hidden shadow-xl">
+        <div className="bg-gradient-to-r from-[#0C451E] to-[#1B8F3D] rounded-2xl p-8 flex items-center gap-10 relative overflow-hidden shadow-xl">
           <div className="absolute w-72 h-72 rounded-full bg-white/5 right-52 -top-24" />
           <div className="flex-1 text-white relative z-10">
             <div className="inline-flex items-center gap-1.5 text-[10px] font-bold tracking-widest bg-white/15 px-3 py-1 rounded-full mb-3">
@@ -72,7 +72,7 @@ const UserDashboard: React.FC = () => {
             <div className="flex gap-3">
               <button
                 onClick={() => navigate('/user/exams')}
-                className="px-6 py-2.5 bg-white text-[#1a7a4a] text-sm font-black rounded-xl hover:shadow-lg hover:-translate-y-0.5 transition-all uppercase tracking-wider"
+                className="px-6 py-2.5 bg-white text-[#1B8F3D] text-sm font-black rounded-xl hover:shadow-lg hover:-translate-y-0.5 transition-all uppercase tracking-wider"
               >
                 Khám phá đề thi
               </button>
@@ -109,7 +109,7 @@ const UserDashboard: React.FC = () => {
         {/* Exams grid */}
         <div className="flex items-center justify-between">
           <h3 className="text-lg font-bold text-gray-900">Đề thi sẵn có</h3>
-          <button onClick={() => navigate('/user/exams')} className="flex items-center gap-1 text-sm text-[#1a7a4a] font-medium hover:underline">
+          <button onClick={() => navigate('/user/exams')} className="flex items-center gap-1 text-sm text-[#1B8F3D] font-medium hover:underline">
             Xem tất cả <ChevronRight size={14} />
           </button>
         </div>
@@ -135,7 +135,7 @@ const UserDashboard: React.FC = () => {
                     <div className={`w-10 h-10 rounded-lg flex items-center justify-center transition-colors ${
                       isCompleted ? 'bg-green-100 text-green-600' : 
                       isInProgress ? 'bg-yellow-100 text-yellow-600' : 
-                      'bg-green-50 text-[#1a7a4a]'
+                      'bg-green-50 text-[#1B8F3D]'
                     }`}>
                       <FileText size={20} />
                     </div>
@@ -154,9 +154,9 @@ const UserDashboard: React.FC = () => {
                     )}
                   </div>
                   <div>
-                    <h4 className="text-sm font-bold text-gray-900 leading-snug group-hover:text-[#1a7a4a] transition-colors">{exam.title}</h4>
+                    <h4 className="text-sm font-bold text-gray-900 leading-snug group-hover:text-[#1B8F3D] transition-colors">{exam.title}</h4>
                     {isCompleted && (
-                      <p className="text-[11px] font-bold text-[#1a7a4a] mt-1">Điểm: {attempt.score}/{attempt.maxScore}</p>
+                      <p className="text-[11px] font-bold text-[#1B8F3D] mt-1">Điểm: {attempt.score}/{attempt.maxScore}</p>
                     )}
                   </div>
                   <div className="flex flex-col gap-1 mt-auto">
@@ -168,7 +168,7 @@ const UserDashboard: React.FC = () => {
                     className={`w-full py-2.5 text-sm font-semibold rounded-lg mt-2 transition-all ${
                       isCompleted ? 'bg-gray-100 text-gray-600 hover:bg-gray-200' :
                       isInProgress ? 'bg-yellow-500 hover:bg-yellow-600 text-white shadow-sm shadow-yellow-200' :
-                      'bg-[#1a7a4a] hover:bg-[#155e3a] text-white'
+                      'bg-[#1B8F3D] hover:bg-[#146c2e] text-white'
                     }`}
                   >
                     {isCompleted ? 'Làm lại' : isInProgress ? 'Tiếp tục' : 'Bắt đầu làm bài'}
@@ -184,7 +184,7 @@ const UserDashboard: React.FC = () => {
           <>
             <div className="flex items-center justify-between">
               <h3 className="text-lg font-bold text-gray-900">Kết quả gần đây</h3>
-              <button onClick={() => navigate('/user/history')} className="flex items-center gap-1 text-sm text-[#1a7a4a] font-medium hover:underline">
+              <button onClick={() => navigate('/user/history')} className="flex items-center gap-1 text-sm text-[#1B8F3D] font-medium hover:underline">
                 Xem toàn bộ lịch sử <ChevronRight size={14} />
               </button>
             </div>

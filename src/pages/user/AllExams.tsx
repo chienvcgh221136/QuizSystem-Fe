@@ -81,7 +81,7 @@ const AllExams: React.FC = () => {
               placeholder="Tìm kiếm đề thi..."
               value={search}
               onChange={e => setSearch(e.target.value)}
-              className="w-full pl-10 pr-4 py-2.5 bg-white border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-[#1a7a4a]/20 focus:border-[#1a7a4a] outline-none transition-all shadow-sm"
+              className="w-full pl-10 pr-4 py-2.5 bg-white border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-[#1B8F3D]/20 focus:border-[#1B8F3D] outline-none transition-all shadow-sm"
             />
           </div>
         </div>
@@ -111,9 +111,9 @@ const AllExams: React.FC = () => {
               return (
                 <section key={cat} className="flex flex-col gap-5">
                   <div className="flex items-center gap-3">
-                    <div className="h-8 w-1.5 bg-[#1a7a4a] rounded-full"></div>
+                    <div className="h-8 w-1.5 bg-[#1B8F3D] rounded-full"></div>
                     <h2 className="text-xl font-black text-gray-900 tracking-tight">{cat}</h2>
-                    <span className="px-2.5 py-0.5 bg-green-50 text-[#1a7a4a] text-[11px] font-bold rounded-full border border-green-100">
+                    <span className="px-2.5 py-0.5 bg-green-50 text-[#1B8F3D] text-[11px] font-bold rounded-full border border-green-100">
                       {catExams.length} bài
                     </span>
                   </div>
@@ -134,7 +134,7 @@ const AllExams: React.FC = () => {
                             <div className={`w-12 h-12 rounded-xl flex items-center justify-center transition-all ${
                               isCompleted ? 'bg-green-100 text-green-600 shadow-inner' : 
                               isInProgress ? 'bg-yellow-100 text-yellow-600 shadow-inner' : 
-                              'bg-gray-50 text-[#1a7a4a] shadow-inner'
+                              'bg-gray-50 text-[#1B8F3D] shadow-inner'
                             }`}>
                               <FileText size={24} />
                             </div>
@@ -154,7 +154,7 @@ const AllExams: React.FC = () => {
                           </div>
 
                           <div className="flex-1">
-                            <h4 className="text-sm font-black text-gray-900 leading-snug group-hover:text-[#1a7a4a] transition-colors line-clamp-2 mb-2">{exam.title}</h4>
+                            <h4 className="text-sm font-black text-gray-900 leading-snug group-hover:text-[#1B8F3D] transition-colors line-clamp-2 mb-2">{exam.title}</h4>
                             <div className="flex items-center gap-3">
                               <span className="flex items-center gap-1 text-[10px] font-bold text-gray-400 uppercase tracking-widest"><Clock size={11} /> {exam.timeLimit} phút</span>
                               <span className="text-gray-300">|</span>
@@ -167,7 +167,7 @@ const AllExams: React.FC = () => {
                             className={`w-full py-3 text-xs font-black rounded-xl transition-all uppercase tracking-widest ${
                               isCompleted ? 'bg-gray-50 text-gray-500 hover:bg-gray-100' :
                               isInProgress ? 'bg-yellow-500 text-white shadow-lg shadow-yellow-500/20 hover:bg-yellow-600' :
-                              'bg-[#1a7a4a] text-white shadow-lg shadow-green-900/10 hover:bg-[#155e3a]'
+                              'bg-[#1B8F3D] text-white shadow-lg shadow-green-900/10 hover:bg-[#146c2e]'
                             }`}
                           >
                             {isCompleted ? 'Làm lại' : isInProgress ? 'Tiếp tục' : 'Bắt đầu'}

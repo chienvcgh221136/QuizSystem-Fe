@@ -64,11 +64,11 @@
 
 .avatar-chat.ai {
   background: #f1f5f9;
-  color: #1a7a4a;
+  color: #1B8F3D;
 }
 
 .avatar-chat.user {
-  background: #1a7a4a;
+  background: #1B8F3D;
   color: white;
 }
 
@@ -89,7 +89,7 @@
 }
 
 .message-wrapper.user .bubble {
-  background: #1a7a4a;
+  background: #1B8F3D;
   color: white;
   border-top-right-radius: 4px;
 }
@@ -113,7 +113,7 @@
 
 .input-wrapper-chat:focus-within {
   background: white;
-  border-color: #1a7a4a;
+  border-color: #1B8F3D;
   box-shadow: 0 0 0 4px rgba(26, 122, 74, 0.1);
 }
 
@@ -127,7 +127,7 @@
 }
 
 .send-button-chat {
-  background: #1a7a4a;
+  background: #1B8F3D;
   color: white;
   width: 40px;
   height: 40px;
@@ -239,8 +239,8 @@
 }
 
 .file-guide-chip:hover {
-  background: #1a7a4a;
-  border-color: #1a7a4a;
+  background: #1B8F3D;
+  border-color: #1B8F3D;
   color: white;
   transform: translateY(-1px);
 }
@@ -285,7 +285,7 @@
 }
 
 .draft-card.active {
-  border-color: #1a7a4a;
+  border-color: #1B8F3D;
   box-shadow: 0 4px 6px -1px rgba(26, 122, 74, 0.05);
 }
 
@@ -298,7 +298,7 @@
 .question-tag {
   font-size: 10px;
   font-weight: 800;
-  color: #1a7a4a;
+  color: #1B8F3D;
   background: #ecfdf5;
   padding: 2px 8px;
   border-radius: 6px;
@@ -316,7 +316,7 @@
 
 .progress-bar-fill {
   height: 100%;
-  background: #1a7a4a;
+  background: #1B8F3D;
   border-radius: 10px;
   transition: width 0.5s ease-out;
 }
@@ -357,7 +357,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  border: 2.5px dashed #1a7a4a;
+  border: 2.5px dashed #1B8F3D;
   animation: dropOverlayIn 0.18s ease-out;
   pointer-events: none;
 }
@@ -379,7 +379,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #1a7a4a;
+  color: #1B8F3D;
   animation: dropIconBounce 0.6s ease-in-out infinite alternate;
 }
 
@@ -397,7 +397,7 @@
 }
 
 .drop-subtitle strong {
-  color: #1a7a4a;
+  color: #1B8F3D;
   font-weight: 700;
 }
 
@@ -437,12 +437,12 @@
 }
 
 .upload-button-chat:hover:not(:disabled) {
-  color: #1a7a4a;
+  color: #1B8F3D;
   background: rgba(26, 122, 74, 0.08);
 }
 
 .upload-button-chat.has-file {
-  color: #1a7a4a;
+  color: #1B8F3D;
   background: rgba(26, 122, 74, 0.1);
 }
 

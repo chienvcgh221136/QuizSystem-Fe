@@ -8,12 +8,12 @@ export default {
     extend: {
       colors: {
         primary: {
-          DEFAULT: '#1a7a4a',
-          dark: '#155e3a',
+          DEFAULT: '#1B8F3D',
+          dark: '#146c2e',
           light: '#e8f5ee',
-          mid: '#2ea566',
+          mid: '#23b14d',
         },
-        sidebar: '#0f3d24',
+        sidebar: '#0C451E',
       },
       fontFamily: {
         sans: ['Inter', 'sans-serif'],

@@ -120,7 +120,7 @@ const AdminUsers: React.FC = () => {
           </div>
           <button 
             onClick={openCreate}
-            className="flex items-center gap-2 bg-[#1a7a4a] text-white px-5 py-2.5 rounded-xl font-bold hover:bg-[#15633c] transition-all shadow-lg shadow-green-900/10 active:scale-95"
+            className="flex items-center gap-2 bg-[#1B8F3D] text-white px-5 py-2.5 rounded-xl font-bold hover:bg-[#15633c] transition-all shadow-lg shadow-green-900/10 active:scale-95"
           >
             <UserPlus size={18} />
             Thêm người dùng
@@ -134,13 +134,13 @@ const AdminUsers: React.FC = () => {
             <input 
               type="text" 
               placeholder="Tìm kiếm theo tên, username hoặc email..." 
-              className="w-full pl-10 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-[#1a7a4a]/20 focus:border-[#1a7a4a] outline-none transition-all"
+              className="w-full pl-10 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-[#1B8F3D]/20 focus:border-[#1B8F3D] outline-none transition-all"
               value={search}
               onChange={e => setSearch(e.target.value)}
             />
           </div>
           <div className="flex items-center gap-2 text-sm text-gray-500 bg-gray-50 px-3 py-2 rounded-xl border border-gray-100">
-            <span className="font-bold text-[#1a7a4a]">{filtered.length}</span> người dùng
+            <span className="font-bold text-[#1B8F3D]">{filtered.length}</span> người dùng
           </div>
         </div>
 
@@ -165,7 +165,7 @@ const AdminUsers: React.FC = () => {
                 <tr key={user.userId} className="hover:bg-gray-50/50 transition-colors group">
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full bg-green-50 text-[#1a7a4a] flex items-center justify-center font-bold">
+                      <div className="w-10 h-10 rounded-full bg-green-50 text-[#1B8F3D] flex items-center justify-center font-bold">
                         {user.fullName?.charAt(0).toUpperCase() || user.username.charAt(0).toUpperCase()}
                       </div>
                       <div>
@@ -192,7 +192,7 @@ const AdminUsers: React.FC = () => {
                     <div className="flex items-center justify-end gap-2">
                       <button 
                         onClick={() => openHistory(user)}
-                        className="p-2 text-[#1a7a4a] hover:bg-green-50 rounded-lg transition-colors"
+                        className="p-2 text-[#1B8F3D] hover:bg-green-50 rounded-lg transition-colors"
                         title="Xem lịch sử làm bài"
                       >
                         <Eye size={16} />
@@ -242,7 +242,7 @@ const AdminUsers: React.FC = () => {
                     type="text" 
                     required
                     disabled={!!editingUser}
-                    className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-[#1a7a4a]/20 focus:border-[#1a7a4a] outline-none transition-all disabled:opacity-50"
+                    className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-[#1B8F3D]/20 focus:border-[#1B8F3D] outline-none transition-all disabled:opacity-50"
                     value={form.username}
                     onChange={e => setForm({...form, username: e.target.value})}
                   />
@@ -251,7 +251,7 @@ const AdminUsers: React.FC = () => {
                   <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-1.5">Họ và tên</label>
                   <input 
                     type="text" 
-                    className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-[#1a7a4a]/20 focus:border-[#1a7a4a] outline-none transition-all"
+                    className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-[#1B8F3D]/20 focus:border-[#1B8F3D] outline-none transition-all"
                     value={form.fullName}
                     onChange={e => setForm({...form, fullName: e.target.value})}
                   />
@@ -260,7 +260,7 @@ const AdminUsers: React.FC = () => {
                   <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-1.5">Email</label>
                   <input 
                     type="email" 
-                    className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-[#1a7a4a]/20 focus:border-[#1a7a4a] outline-none transition-all"
+                    className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-[#1B8F3D]/20 focus:border-[#1B8F3D] outline-none transition-all"
                     value={form.email}
                     onChange={e => setForm({...form, email: e.target.value})}
                   />
@@ -272,7 +272,7 @@ const AdminUsers: React.FC = () => {
                     name={editingUser ? 'new-password' : 'password'}
                     autoComplete="new-password"
                     required={!editingUser}
-                    className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-[#1a7a4a]/20 focus:border-[#1a7a4a] outline-none transition-all"
+                    className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-[#1B8F3D]/20 focus:border-[#1B8F3D] outline-none transition-all"
                     value={form.passwordHash}
                     onChange={e => setForm({...form, passwordHash: e.target.value})}
                   />
@@ -280,7 +280,7 @@ const AdminUsers: React.FC = () => {
                 <div>
                   <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-1.5">Vai trò</label>
                   <select 
-                    className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-[#1a7a4a]/20 focus:border-[#1a7a4a] outline-none transition-all appearance-none cursor-pointer"
+                    className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-[#1B8F3D]/20 focus:border-[#1B8F3D] outline-none transition-all appearance-none cursor-pointer"
                     value={form.role}
                     onChange={e => setForm({...form, role: e.target.value})}
                   >
@@ -300,7 +300,7 @@ const AdminUsers: React.FC = () => {
                   <button 
                     type="submit"
                     disabled={saving}
-                    className="flex-1 bg-[#1a7a4a] text-white px-4 py-2.5 rounded-xl font-bold hover:bg-[#15633c] transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+                    className="flex-1 bg-[#1B8F3D] text-white px-4 py-2.5 rounded-xl font-bold hover:bg-[#15633c] transition-all disabled:opacity-50 flex items-center justify-center gap-2"
                   >
                     {saving ? 'Đang lưu...' : (
                       <>
@@ -321,7 +321,7 @@ const AdminUsers: React.FC = () => {
             <div className="bg-white rounded-3xl w-full max-w-3xl overflow-hidden shadow-2xl animate-in fade-in zoom-in duration-200 flex flex-col max-h-[85vh]">
               <div className="p-6 border-b border-gray-100 flex items-center justify-between bg-gray-50/50">
                 <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 rounded-2xl bg-[#1a7a4a] text-white flex items-center justify-center font-black text-xl shadow-lg shadow-green-900/20">
+                  <div className="w-12 h-12 rounded-2xl bg-[#1B8F3D] text-white flex items-center justify-center font-black text-xl shadow-lg shadow-green-900/20">
                     {selectedUser.fullName?.charAt(0).toUpperCase() || selectedUser.username.charAt(0).toUpperCase()}
                   </div>
                   <div>
@@ -337,7 +337,7 @@ const AdminUsers: React.FC = () => {
               <div className="flex-1 overflow-auto p-6">
                 {loadingHistory ? (
                   <div className="flex flex-col items-center justify-center py-20 gap-3">
-                    <div className="w-8 h-8 border-4 border-[#1a7a4a] border-t-transparent rounded-full animate-spin"></div>
+                    <div className="w-8 h-8 border-4 border-[#1B8F3D] border-t-transparent rounded-full animate-spin"></div>
                     <p className="text-sm text-gray-500 font-medium">Đang tải dữ liệu lịch sử...</p>
                   </div>
                 ) : history.length === 0 ? (
@@ -375,10 +375,10 @@ const AdminUsers: React.FC = () => {
                       else if (percent >= 50) colorClass = "bg-yellow-50 text-yellow-600 border-yellow-100";
 
                       return (
-                        <div key={h.resultId} className="bg-white border border-gray-100 rounded-2xl p-5 hover:border-[#1a7a4a]/20 transition-all shadow-sm hover:shadow-md group">
+                        <div key={h.resultId} className="bg-white border border-gray-100 rounded-2xl p-5 hover:border-[#1B8F3D]/20 transition-all shadow-sm hover:shadow-md group">
                           <div className="flex items-center justify-between gap-4">
                             <div className="flex-1">
-                              <h4 className="font-bold text-gray-900 group-hover:text-[#1a7a4a] transition-colors mb-1">{h.title}</h4>
+                              <h4 className="font-bold text-gray-900 group-hover:text-[#1B8F3D] transition-colors mb-1">{h.title}</h4>
                               <div className="flex items-center gap-3">
                                 <div className="flex items-center gap-1.5 text-[10px] text-gray-500 font-bold">
                                   <Clock size={12} className="text-gray-400" />

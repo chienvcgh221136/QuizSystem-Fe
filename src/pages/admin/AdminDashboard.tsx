@@ -39,7 +39,7 @@ const AdminDashboard: React.FC = () => {
 
   const stats = [
     { label: 'TỔNG NGƯỜI DÙNG', value: loading ? '...' : statsData?.totalUsers?.toLocaleString(), sub: '+0% tháng này', icon: <Users size={20} />, iconBg: 'bg-blue-50', iconColor: 'text-blue-500' },
-    { label: 'ĐỀ THI ĐÃ XUẤT BẢN', value: loading ? '...' : statsData?.totalExams, sub: 'tổng số đề thi', icon: <FileText size={20} />, iconBg: 'bg-green-50', iconColor: 'text-[#1a7a4a]' },
+    { label: 'ĐỀ THI ĐÃ XUẤT BẢN', value: loading ? '...' : statsData?.totalExams, sub: 'tổng số đề thi', icon: <FileText size={20} />, iconBg: 'bg-green-50', iconColor: 'text-[#1B8F3D]' },
     { label: 'NGÂN HÀNG CÂU HỎI', value: loading ? '...' : statsData?.totalQuestions, sub: 'câu hỏi đang hoạt động', icon: <Database size={20} />, iconBg: 'bg-purple-50', iconColor: 'text-purple-500' },
     { label: 'ĐIỂM TRUNG BÌNH', value: loading ? '...' : `${statsData?.avgScore}%`, sub: 'trên toàn hệ thống', icon: <TrendingUp size={20} />, iconBg: 'bg-amber-50', iconColor: 'text-amber-500' },
   ];
@@ -100,7 +100,7 @@ const AdminDashboard: React.FC = () => {
                   <tr key={i} className="border-b border-gray-50 last:border-0 hover:bg-gray-50 transition-colors">
                     <td className="py-3 px-2">
                       <div className="flex items-center gap-2">
-                        <span className={`w-7 h-7 rounded-full bg-[#1a7a4a] text-white text-[10px] font-bold flex items-center justify-center flex-shrink-0`}>{row.initials}</span>
+                        <span className={`w-7 h-7 rounded-full bg-[#1B8F3D] text-white text-[10px] font-bold flex items-center justify-center flex-shrink-0`}>{row.initials}</span>
                         <span className="font-medium text-gray-800 text-[13px]">{row.userName}</span>
                       </div>
                     </td>
@@ -118,12 +118,12 @@ const AdminDashboard: React.FC = () => {
           {/* Right column */}
           <div className="flex flex-col gap-4">
             {/* AI Insights */}
-            <div className="bg-gradient-to-br from-[#0f3d24] to-[#1a7a4a] rounded-xl p-5 text-white shadow-sm">
+            <div className="bg-gradient-to-br from-[#0C451E] to-[#1B8F3D] rounded-xl p-5 text-white shadow-sm">
               <h3 className="text-sm font-bold mb-2">Gợi ý từ AI</h3>
               <p className="text-xs text-white/80 leading-relaxed mb-4">
                 Hệ thống nhận thấy người dùng đang làm tốt chủ đề C#. Hãy cân nhắc tạo thêm các đề thi nâng cao để thử thách họ.
               </p>
-              <button onClick={() => navigate('/admin/chatbot')} className="w-full py-2 bg-white text-[#1a7a4a] text-xs font-bold rounded-lg hover:-translate-y-0.5 hover:shadow-md transition-all">
+              <button onClick={() => navigate('/admin/chatbot')} className="w-full py-2 bg-white text-[#1B8F3D] text-xs font-bold rounded-lg hover:-translate-y-0.5 hover:shadow-md transition-all">
                 Tạo đề thi nâng cao
               </button>
             </div>
@@ -135,7 +135,7 @@ const AdminDashboard: React.FC = () => {
                 <div key={String(label)} className="flex items-center gap-2.5 mb-3 last:mb-0">
                   <span className="text-xs text-gray-500 w-24 flex-shrink-0">{label}</span>
                   <div className="flex-1 h-2 bg-gray-100 rounded-full">
-                    <div className="h-full bg-[#1a7a4a] rounded-full" style={{ width: `${val}%` }} />
+                    <div className="h-full bg-[#1B8F3D] rounded-full" style={{ width: `${val}%` }} />
                   </div>
                   <span className="text-xs font-bold text-gray-700 w-12 text-right">{display}</span>
                 </div>

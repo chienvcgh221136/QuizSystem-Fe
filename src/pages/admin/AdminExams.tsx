@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import AdminLayout from '../../layouts/AdminLayout';
 import { examsApi, questionsApi } from '../../api/services';
-import { Plus, Pencil, Trash2, Search, X, Check } from 'lucide-react';
+import { Plus, Pencil, Trash2, Search, X, Check, Download } from 'lucide-react';
 import { stripCreatedByAI } from '../../utils/strings';
 import { getImageUrl } from '../../utils/imageUrl';
 
@@ -62,7 +62,14 @@ const QuestionImg = ({ url }: { url?: string | null }) => {
 const AdminExams: React.FC = () => {
   const [exams, setExams] = useState<Exam[]>([]);
   const [activeTab, setActiveTab] = useState<'admin' | 'ai'>('admin');
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 20;
+
   const [search, setSearch] = useState('');
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [activeTab, search]);
   const [qSearch, setQSearch] = useState('');
   const [bSearch, setBSearch] = useState('');
   const [loading, setLoading] = useState(true);
@@ -207,13 +214,32 @@ const AdminExams: React.FC = () => {
     await examsApi.delete(id); setLoading(true); refresh();
   };
 
+  const handleExportExam = async (examId: number, title: string) => {
+    try {
+      const url = `${import.meta.env.VITE_API_URL}/Exams/${examId}/export?t=${new Date().getTime()}`;
+      const res = await fetch(url, { headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` } });
+      if (!res.ok) throw new Error('Network response was not ok');
+      const blob = await res.blob();
+      const downloadUrl = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = downloadUrl;
+      a.download = `DeThi_${title.replace(/[^a-z0-9]/gi, '_')}.xlsx`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+    } catch (e) {
+      console.error(e);
+      alert('Có lỗi xảy ra khi xuất Excel');
+    }
+  };
+
   const statusBadge: Record<string, string> = {
     Published: 'bg-green-100 text-green-700',
     Draft: 'bg-yellow-100 text-yellow-700',
     Archived: 'bg-gray-100 text-gray-500',
   };
   const statusLabel: Record<string, string> = { Published: 'Đã đăng', Draft: 'Bản nháp', Archived: 'Lưu trữ' };
-  const inputCls = "w-full px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:border-[#1a7a4a] focus:ring-2 focus:ring-[#1a7a4a]/10 bg-gray-50 focus:bg-white transition-all";
+  const inputCls = "w-full px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:border-[#1B8F3D] focus:ring-2 focus:ring-[#1B8F3D]/10 bg-gray-50 focus:bg-white transition-all";
 
   const isAICreated = (exam: Exam) => {
     if (exam.createdBy && exam.createdBy.trim().toLowerCase() === 'ai') return true;
@@ -228,6 +254,9 @@ const AdminExams: React.FC = () => {
     e.title?.toLowerCase().includes(search.toLowerCase()) || e.category?.toLowerCase().includes(search.toLowerCase())
   );
 
+  const totalPages = Math.ceil(visibleExams.length / itemsPerPage);
+  const paginatedExams = visibleExams.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+
   return (
     <AdminLayout>
       <div className="flex flex-col gap-5">
@@ -236,7 +265,7 @@ const AdminExams: React.FC = () => {
             <h1 className="text-xl font-extrabold text-gray-900">Quản lý Đề thi</h1>
             <p className="text-sm text-gray-500 mt-1">Tạo, chỉnh sửa và quản lý toàn bộ đề thi.</p>
           </div>
-          <button onClick={openCreate} className="flex items-center gap-1.5 px-4 py-2.5 bg-[#1a7a4a] hover:bg-[#155e3a] text-white text-sm font-semibold rounded-lg transition-colors">
+          <button onClick={openCreate} className="flex items-center gap-1.5 px-4 py-2.5 bg-[#1B8F3D] hover:bg-[#146c2e] text-white text-sm font-semibold rounded-lg transition-colors">
             <Plus size={15} /> Tạo đề mới
           </button>
         </div>
@@ -244,14 +273,14 @@ const AdminExams: React.FC = () => {
         <div className="relative max-w-xs">
           <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
           <input placeholder="Tìm kiếm đề thi..." value={search} onChange={e => setSearch(e.target.value)}
-            className="w-full pl-9 pr-4 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:border-[#1a7a4a] bg-gray-50 focus:bg-white transition-colors" />
+            className="w-full pl-9 pr-4 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:border-[#1B8F3D] bg-gray-50 focus:bg-white transition-colors" />
         </div>
 
         <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
           <div className="flex border-b border-gray-200 bg-gray-50">
             {(['admin', 'ai'] as const).map(tab => (
               <button key={tab} onClick={() => setActiveTab(tab)}
-                className={`flex-1 px-5 py-4 text-sm font-semibold transition-colors flex items-center justify-center gap-2 ${activeTab === tab ? 'text-[#1a7a4a] bg-white border-b-2 border-[#1a7a4a]' : 'text-gray-500 hover:text-gray-700'}`}>
+                className={`flex-1 px-5 py-4 text-sm font-semibold transition-colors flex items-center justify-center gap-2 ${activeTab === tab ? 'text-[#1B8F3D] bg-white border-b-2 border-[#1B8F3D]' : 'text-gray-500 hover:text-gray-700'}`}>
                 <span>{tab === 'admin' ? 'Đề do Admin tạo' : 'Đề do AI tạo'}</span>
                 <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-gray-100 text-gray-500">
                   {tab === 'admin' ? adminExams.length : aiExams.length}
@@ -265,15 +294,16 @@ const AdminExams: React.FC = () => {
             ) : visibleExams.length === 0 ? (
               <div className="text-center py-10 text-gray-400">{activeTab === 'admin' ? 'Không có đề do Admin tạo.' : 'Không có đề do AI tạo.'}</div>
             ) : (
-              <div className="space-y-3">
-                {visibleExams.map(exam => (
+              <>
+                <div className="space-y-3">
+                  {paginatedExams.map(exam => (
                   <div key={exam.examId} className="p-3 border border-gray-100 rounded-xl bg-white shadow-sm flex items-center gap-4">
                     <div className="flex-1 min-w-0">
                       <div className="font-semibold text-gray-900 truncate">{stripCreatedByAI(exam.title)}</div>
                       <div className="text-xs text-gray-400 truncate hidden md:block">{exam.description}</div>
                     </div>
                     <div className="flex-none flex items-center gap-3 text-[11px] text-gray-500 whitespace-nowrap">
-                      <span className="px-2 py-0.5 bg-green-50 text-[#1a7a4a] rounded-full">{exam.category}</span>
+                      <span className="px-2 py-0.5 bg-green-50 text-[#1B8F3D] rounded-full">{exam.category}</span>
                       <span className="uppercase">{exam.level}</span>
                       <span>{exam.timeLimit} phút</span>
                       <span className={`${statusBadge[exam.status] || 'bg-gray-100 text-gray-500'} text-[11px] font-semibold px-2 py-0.5 rounded-full`}>
@@ -282,13 +312,37 @@ const AdminExams: React.FC = () => {
                       {isAICreated(exam) && <span className="px-2 py-0.5 bg-purple-50 text-purple-700 rounded-full text-[11px] font-semibold">AI</span>}
                     </div>
                     <div className="flex-none flex items-center gap-2">
-                      <button onClick={() => openManage(exam)} className="w-9 h-9 rounded-lg border border-gray-200 bg-white flex items-center justify-center text-gray-400 hover:border-[#1a7a4a] hover:text-[#1a7a4a]" title="Quản lý câu hỏi"><Search size={14} /></button>
-                      <button onClick={() => openEdit(exam)} className="w-9 h-9 rounded-lg border border-gray-200 bg-white flex items-center justify-center text-gray-400" title="Sửa thông tin"><Pencil size={14} /></button>
+                      <button onClick={() => openManage(exam)} className="w-9 h-9 rounded-lg border border-gray-200 bg-white flex items-center justify-center text-gray-400 hover:border-[#1B8F3D] hover:text-[#1B8F3D]" title="Quản lý câu hỏi"><Search size={14} /></button>
+                      <button onClick={() => openEdit(exam)} className="w-9 h-9 rounded-lg border border-gray-200 bg-white flex items-center justify-center text-gray-400 hover:border-[#1B8F3D] hover:text-[#1B8F3D]" title="Sửa thông tin"><Pencil size={14} /></button>
+                      <button onClick={() => handleExportExam(exam.examId, exam.title)} className="w-9 h-9 rounded-lg border border-gray-200 bg-white flex items-center justify-center text-gray-400 hover:border-green-400 hover:text-green-500" title="Xuất Excel đề thi"><Download size={14} /></button>
                       <button onClick={() => handleDelete(exam.examId)} className="w-9 h-9 rounded-lg border border-gray-200 bg-white flex items-center justify-center text-gray-400 hover:border-red-400 hover:text-red-500" title="Xóa đề"><Trash2 size={14} /></button>
                     </div>
                   </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+                
+                {totalPages > 1 && (
+                  <div className="flex justify-center items-center gap-6 mt-6 pt-4 border-t border-gray-100">
+                    <button
+                      onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                      disabled={currentPage === 1}
+                      className="text-sm font-medium text-[#1B8F3D] hover:text-[#146c2e] disabled:text-gray-300 transition-colors"
+                    >
+                      Trang trước
+                    </button>
+                    <span className="text-sm text-gray-600 font-medium">
+                      Hiển thị trang {currentPage} / {totalPages}
+                    </span>
+                    <button
+                      onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                      disabled={currentPage === totalPages}
+                      className="text-sm font-medium text-[#1B8F3D] hover:text-[#146c2e] disabled:text-gray-300 transition-colors"
+                    >
+                      Trang sau
+                    </button>
+                  </div>
+                )}
+              </>
             )}
           </div>
         </div>
@@ -330,15 +384,15 @@ const AdminExams: React.FC = () => {
                 </select></div>
               {!editExam && (
                 <div>
-                  <label className="block text-xs font-semibold text-[#1a7a4a] mb-1.5">Số lượng câu hỏi tự động</label>
-                  <input type="number" className={`${inputCls} border-[#1a7a4a]/30 bg-green-50/30`} value={form.questionCount} onChange={e => setForm({ ...form, questionCount: Number(e.target.value) })} />
+                  <label className="block text-xs font-semibold text-[#1B8F3D] mb-1.5">Số lượng câu hỏi tự động</label>
+                  <input type="number" className={`${inputCls} border-[#1B8F3D]/30 bg-green-50/30`} value={form.questionCount} onChange={e => setForm({ ...form, questionCount: Number(e.target.value) })} />
                   <p className="text-[10px] text-gray-400 mt-1">Hệ thống sẽ tự động bốc ngẫu nhiên dựa trên Danh mục &amp; Cấp độ.</p>
                 </div>
               )}
             </div>
             <div className="flex gap-2.5 justify-end mt-6">
               <button onClick={() => setShowModal(false)} className="px-4 py-2 border border-gray-200 rounded-lg text-sm font-semibold text-gray-500 hover:bg-gray-50">Hủy</button>
-              <button onClick={handleSave} disabled={saving} className="px-5 py-2 bg-[#1a7a4a] hover:bg-[#155e3a] text-white text-sm font-semibold rounded-lg disabled:opacity-60">
+              <button onClick={handleSave} disabled={saving} className="px-5 py-2 bg-[#1B8F3D] hover:bg-[#146c2e] text-white text-sm font-semibold rounded-lg disabled:opacity-60">
                 {saving ? 'Đang lưu...' : (editExam ? 'Cập nhật' : 'Tạo mới')}
               </button>
             </div>
@@ -367,13 +421,13 @@ const AdminExams: React.FC = () => {
               <div className="border-r border-gray-100 flex flex-col min-h-0">
                 <div className="px-4 py-3 bg-green-50/60 border-b border-green-100 shrink-0">
                   <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm font-bold text-[#1a7a4a]">Câu hỏi trong đề</span>
+                    <span className="text-sm font-bold text-[#1B8F3D]">Câu hỏi trong đề</span>
                     <span className="text-xs font-bold px-2 py-0.5 bg-green-100 text-green-700 rounded-full">{examQuestions.length} câu</span>
                   </div>
                   <div className="relative">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={13} />
                     <input type="text" placeholder="Tìm trong đề..."
-                      className="w-full pl-8 pr-3 py-1.5 bg-white border border-gray-200 rounded-lg text-xs outline-none focus:border-[#1a7a4a]"
+                      className="w-full pl-8 pr-3 py-1.5 bg-white border border-gray-200 rounded-lg text-xs outline-none focus:border-[#1B8F3D]"
                       value={qSearch} onChange={e => setQSearch(e.target.value)} />
                   </div>
                 </div>
@@ -392,7 +446,7 @@ const AdminExams: React.FC = () => {
                       className={`border rounded-xl bg-white shadow-sm flex flex-col gap-2.5 p-3.5 group transition-all ${dragOverIndex === i ? 'ring-2 ring-dashed ring-green-300 border-green-200' : 'border-gray-100 hover:border-gray-200'}`}
                     >
                       <div className="flex items-start gap-2.5">
-                        <span className="w-6 h-6 rounded-lg bg-[#1a7a4a]/10 text-[#1a7a4a] text-[10px] font-bold flex items-center justify-center flex-shrink-0 mt-0.5">{i + 1}</span>
+                        <span className="w-6 h-6 rounded-lg bg-[#1B8F3D]/10 text-[#1B8F3D] text-[10px] font-bold flex items-center justify-center flex-shrink-0 mt-0.5">{i + 1}</span>
                         <p className="flex-1 text-sm font-semibold text-gray-800 leading-snug">{q.content}</p>
                         <button onClick={() => handleRemoveQuestion(q.questionId)}
                           className="text-red-400 hover:text-red-600 p-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">

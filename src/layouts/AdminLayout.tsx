@@ -15,10 +15,23 @@ const AdminLayout = ({ children }: { children: ReactNode }) => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
 
+  // Phát hiện xem ứng dụng có đang chạy trong iframe hay không
+  const isEmbed = window.self !== window.top;
+
+  if (isEmbed) {
+    return (
+      <div className="flex h-screen overflow-hidden font-sans bg-gray-50">
+        <main className="flex-1 overflow-y-auto p-0">
+          {children}
+        </main>
+      </div>
+    );
+  }
+
   return (
     <div className="flex h-screen overflow-hidden font-sans">
       {/* Sidebar */}
-      <aside className="w-56 bg-[#0f3d24] flex flex-col flex-shrink-0 overflow-y-auto">
+      <aside className="w-56 bg-[#0C451E] flex flex-col flex-shrink-0 overflow-y-auto">
         <div className="flex items-center gap-2.5 px-4 py-5 border-b border-white/10 text-white">
           <BookOpen size={20} />
           <div>
@@ -35,7 +48,7 @@ const AdminLayout = ({ children }: { children: ReactNode }) => {
               className={({ isActive }) =>
                 `flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-[13.5px] font-medium transition-colors ${
                   isActive
-                    ? 'bg-[#1a7a4a] text-white'
+                    ? 'bg-[#1B8F3D] text-white'
                     : 'text-green-200/80 hover:bg-white/8 hover:text-white'
                 }`
               }
@@ -49,13 +62,13 @@ const AdminLayout = ({ children }: { children: ReactNode }) => {
         <div className="px-2.5 py-3 border-t border-white/10 flex flex-col gap-3">
           <button
             onClick={() => navigate('/admin/chatbot')}
-            className="flex items-center justify-center gap-2 w-full py-2.5 bg-[#1a7a4a] hover:bg-[#2ea566] text-white text-sm font-semibold rounded-lg transition-colors"
+            className="flex items-center justify-center gap-2 w-full py-2.5 bg-[#1B8F3D] hover:bg-[#23b14d] text-white text-sm font-semibold rounded-lg transition-colors"
           >
             <PlusCircle size={15} />
             <span>Tạo đề thi mới</span>
           </button>
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-full bg-[#1a7a4a] text-white flex items-center justify-center text-xs font-bold flex-shrink-0">
+            <div className="w-8 h-8 rounded-full bg-[#1B8F3D] text-white flex items-center justify-center text-xs font-bold flex-shrink-0">
               {user?.fullName?.charAt(0) ?? 'A'}
             </div>
             <div className="flex-1 min-w-0">
@@ -73,19 +86,19 @@ const AdminLayout = ({ children }: { children: ReactNode }) => {
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* Topbar */}
         <header className="h-[52px] bg-white border-b border-gray-200 flex items-center px-6 gap-4 flex-shrink-0">
-          <div className="flex items-center gap-2 text-[#1a7a4a] font-bold text-[15px]">
+          <div className="flex items-center gap-2 text-[#1B8F3D] font-bold text-[15px]">
             <BookOpen size={17} />
             <span>QuizChat</span>
-            <span className="text-[10px] bg-green-50 text-[#1a7a4a] px-2 py-0.5 rounded-full font-semibold tracking-wide">PHÁT TRIỂN</span>
+            <span className="text-[10px] bg-green-50 text-[#1B8F3D] px-2 py-0.5 rounded-full font-semibold tracking-wide">PHÁT TRIỂN</span>
           </div>
           <div className="flex items-center gap-2.5 ml-auto">
             <div className="relative">
               <input
                 placeholder="Tìm kiếm dữ liệu..."
-                className="pl-3 pr-3 py-1.5 border border-gray-200 rounded-lg text-[13px] outline-none focus:border-[#1a7a4a] bg-gray-50 w-48 transition-colors"
+                className="pl-3 pr-3 py-1.5 border border-gray-200 rounded-lg text-[13px] outline-none focus:border-[#1B8F3D] bg-gray-50 w-48 transition-colors"
               />
             </div>
-            <div className="w-8 h-8 rounded-full bg-[#1a7a4a] text-white flex items-center justify-center text-xs font-bold">
+            <div className="w-8 h-8 rounded-full bg-[#1B8F3D] text-white flex items-center justify-center text-xs font-bold">
               {user?.fullName?.charAt(0) ?? 'A'}
             </div>
           </div>
