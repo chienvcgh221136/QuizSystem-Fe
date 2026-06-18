@@ -13,6 +13,13 @@ import AdminQuestions from './pages/admin/AdminQuestions.tsx';
 import AdminChatbot from './pages/admin/AdminChatbot';
 import AllExams from './pages/user/AllExams';
 
+const FallbackRoute = () => {
+  const { user } = useAuth();
+  if (user?.role === 'Admin') return <Navigate to="/admin/dashboard" replace />;
+  if (user?.role === 'User') return <Navigate to="/user/dashboard" replace />;
+  return <Navigate to="/login" replace />;
+};
+
 const PrivateRoute = ({ children, roles }: { children: React.ReactNode, roles?: string[] }) => {
   const { user } = useAuth();
   
@@ -52,7 +59,7 @@ const App: React.FC = () => {
           <Route path="/admin/chatbot" element={<PrivateRoute roles={['Admin']}><AdminChatbot /></PrivateRoute>} />
           
           {/* Default Admin routes mapping to existing pages */}
-          <Route path="*" element={<Navigate to="/login" replace />} />
+          <Route path="*" element={<FallbackRoute />} />
         </Routes>
       </AuthProvider>
     </BrowserRouter>

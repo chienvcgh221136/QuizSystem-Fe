@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { examsApi, examResultsApi } from '../../api/services';
 import UserLayout from '../../layouts/UserLayout';
 import { Clock, FileText, Search, LayoutGrid, CheckCircle2 } from 'lucide-react';
@@ -26,6 +26,7 @@ interface HistoryItem {
 
 const AllExams: React.FC = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [exams, setExams] = useState<Exam[]>([]);
   const [history, setHistory] = useState<HistoryItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -46,6 +47,25 @@ const AllExams: React.FC = () => {
     };
     fetchData();
   }, []);
+
+  useEffect(() => {
+    if (!loading && exams.length > 0) {
+      const params = new URLSearchParams(location.search);
+      const examId = params.get('examId');
+      if (examId) {
+        setTimeout(() => {
+          const element = document.getElementById(`exam-${examId}`);
+          if (element) {
+            element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            element.classList.add('ring-4', 'ring-[#1B8F3D]', 'ring-opacity-50', 'ring-offset-2', 'transition-all', 'duration-500');
+            setTimeout(() => {
+              element.classList.remove('ring-4', 'ring-[#1B8F3D]', 'ring-opacity-50', 'ring-offset-2');
+            }, 3000);
+          }
+        }, 300);
+      }
+    }
+  }, [loading, exams, location.search]);
 
   const handleStart = async (examId: number) => {
     try {
@@ -127,6 +147,7 @@ const AllExams: React.FC = () => {
                       return (
                         <div 
                           key={exam.examId}
+                          id={`exam-${exam.examId}`}
                           onClick={() => handleStart(exam.examId)}
                           className="bg-white border border-gray-100 rounded-2xl p-5 flex flex-col gap-4 hover:shadow-xl hover:-translate-y-1.5 transition-all cursor-pointer group shadow-sm"
                         >

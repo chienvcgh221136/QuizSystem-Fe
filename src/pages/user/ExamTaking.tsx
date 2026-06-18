@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { examsApi, examResultsApi } from '../../api/services';
-import { Clock, Send, ChevronLeft, ChevronRight, CheckCircle, Info } from 'lucide-react';
+import { Clock, Send, ChevronLeft, ChevronRight, CheckCircle } from 'lucide-react';
 import { getImageUrl } from '../../utils/imageUrl';
 
 interface Question { 

@@ -45,8 +45,8 @@ const UserChatbot: React.FC = () => {
   };
 // Đưa Markdown thành link và Card kết quả nếu có trong tin nhắn AI
   const renderMessageText = (text: string) => {
-    // 1. Tách chuỗi bằng mật mã [CARD_RESULT|id|title|category]
-    const cardRegex = /\[CARD_RESULT\|(.*?)\|(.*?)\|(.*?)\]/g;
+    // 1. Tách chuỗi bằng mật mã [CARD_RESULT|id|title|category] hoặc [CARD_EXAM|id|title|category]
+    const cardRegex = /\[(CARD_RESULT|CARD_EXAM)\|(.*?)\|(.*?)\|(.*?)\]/g;
     const parts = text.split(cardRegex);
 
     // Nếu không có mật mã card, xử lý link markdown bình thường
@@ -55,20 +55,26 @@ const UserChatbot: React.FC = () => {
     }
 
     const elements = [];
-    for (let i = 0; i < parts.length; i += 4) {
+    for (let i = 0; i < parts.length; i += 5) {
       // In ra phần chữ bình thường (nếu có) trước cái card
       if (parts[i]) elements.push(renderStandardLinks(parts[i]));
 
       // Vẽ Card nếu có dữ liệu
       if (i + 1 < parts.length) {
-        const resultId = parts[i + 1];
-        const title = parts[i + 2];
-        const category = parts[i + 3];
+        const cardType = parts[i + 1];
+        const id = parts[i + 2];
+        const title = parts[i + 3];
+        const category = parts[i + 4];
+
+        const isResult = cardType === 'CARD_RESULT';
+        const linkTo = isResult ? `/user/result/${id}` : `/user/exams?examId=${id}`;
+        const badgeText = isResult ? "Đã hoàn thành" : "Chưa làm";
+        const badgeColor = isResult ? "bg-black/80" : "bg-orange-500/90";
 
         elements.push(
           <Link 
             key={`card-${i}`} 
-            to={`/user/result/${resultId}`} 
+            to={linkTo} 
             // 1. Hover card
             className="block my-3 w-full border border-gray-100 rounded-xl overflow-hidden hover:shadow-xl hover:-translate-y-1 transition-all duration-300 bg-white group cursor-pointer"
           >
@@ -89,9 +95,9 @@ const UserChatbot: React.FC = () => {
                   </div>
                </div>
 
-               {/* Badge thời lượng / Đã hoàn thành */}
-               <div className="absolute bottom-2 right-2 bg-black/80 text-white text-[10px] px-2 py-0.5 rounded-md font-medium backdrop-blur-sm border border-white/10 z-10">
-                 Đã hoàn thành
+               {/* Badge trạng thái */}
+               <div className={`absolute bottom-2 right-2 ${badgeColor} text-white text-[10px] px-2 py-0.5 rounded-md font-medium backdrop-blur-sm border border-white/10 z-10`}>
+                 {badgeText}
                </div>
             </div>
 
@@ -132,11 +138,29 @@ const UserChatbot: React.FC = () => {
     for (let i = 0; i < parts.length; i += 3) {
       elements.push(<span key={i} className="whitespace-pre-wrap">{parts[i]}</span>);
       if (i + 1 < parts.length) {
-        elements.push(
-          <Link key={i + 1} to={parts[i + 2]} className="text-[#1a7a4a] underline font-bold hover:text-[#146039]">
-            {parts[i + 1]}
-          </Link>
-        );
+        let toPath = parts[i + 2].trim();
+        
+        if (!toPath.startsWith('/') && !toPath.startsWith('http')) {
+          toPath = '/' + toPath;
+        }
+        if (toPath.startsWith('/exam/')) {
+           const id = toPath.split('/').pop();
+           toPath = `/user/exams?examId=${id}`;
+        }
+
+        if (toPath.startsWith('http')) {
+          elements.push(
+            <a key={i + 1} href={toPath} target="_blank" rel="noopener noreferrer" className="text-[#1a7a4a] underline font-bold hover:text-[#146039]">
+              {parts[i + 1]}
+            </a>
+          );
+        } else {
+          elements.push(
+            <Link key={i + 1} to={toPath} className="text-[#1a7a4a] underline font-bold hover:text-[#146039]">
+              {parts[i + 1]}
+            </Link>
+          );
+        }
       }
     }
     return <>{elements}</>;
