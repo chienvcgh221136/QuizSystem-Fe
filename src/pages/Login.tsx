@@ -30,7 +30,7 @@ const LoginPage: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#0C451E] via-[#1B8F3D] to-[#23b14d] flex items-center justify-center p-6 relative overflow-hidden">
-      {/* Background decorations */}
+
       <div className="absolute w-[500px] h-[500px] rounded-full bg-white/5 -top-48 -right-24 blur-3xl" />
       <div className="absolute w-[400px] h-[400px] rounded-full bg-white/5 -bottom-24 -left-12 blur-3xl" />
 

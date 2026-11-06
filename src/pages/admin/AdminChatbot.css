@@ -6,7 +6,6 @@
   padding: 8px;
 }
 
-/* Chat Section */
 .chat-section {
   flex: 1.8;
   background: white;
@@ -147,7 +146,6 @@
   transform: translateY(0);
 }
 
-/* Textarea inside input wrapper - align buttons to bottom when textarea expands */
 .chat-textarea {
   flex: 1;
   background: transparent;
@@ -168,7 +166,6 @@
   color: #94a3b8;
 }
 
-/* === File Guide Banner === */
 .file-guide-banner {
   display: flex;
   align-items: flex-start;
@@ -245,8 +242,6 @@
   transform: translateY(-1px);
 }
 
-
-/* Draft Section */
 .draft-section {
   flex: 1;
   background: white;
@@ -342,7 +337,6 @@
   40% { transform: scale(1); }
 }
 
-/* === Drag & Drop Overlay === */
 .chat-section {
   position: relative;
 }
@@ -415,14 +409,12 @@
   animation: pulse-ring 2s ease-in-out;
 }
 
-
 @keyframes pulse-ring {
   0% { box-shadow: 0 0 0 0 rgba(26, 122, 74, 0.4); }
   50% { box-shadow: 0 0 0 10px rgba(26, 122, 74, 0); }
   100% { box-shadow: 0 0 0 0 rgba(26, 122, 74, 0); }
 }
 
-/* === File Upload Button === */
 .upload-button-chat {
   width: 36px;
   height: 36px;
@@ -455,7 +447,6 @@
   cursor: not-allowed;
 }
 
-/* === Attached File Chip === */
 .attached-file-chip {
   display: flex;
   align-items: center;

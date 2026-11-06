@@ -15,7 +15,6 @@ const AdminLayout = ({ children }: { children: ReactNode }) => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
 
-  // Phát hiện xem ứng dụng có đang chạy trong iframe hay không
   const isEmbed = window.self !== window.top;
 
   if (isEmbed) {
@@ -30,7 +29,7 @@ const AdminLayout = ({ children }: { children: ReactNode }) => {
 
   return (
     <div className="flex h-screen overflow-hidden font-sans">
-      {/* Sidebar */}
+
       <aside className="w-56 bg-[#0C451E] flex flex-col flex-shrink-0 overflow-y-auto">
         <div className="flex items-center gap-2.5 px-4 py-5 border-b border-white/10 text-white">
           <BookOpen size={20} />
@@ -82,9 +81,8 @@ const AdminLayout = ({ children }: { children: ReactNode }) => {
         </div>
       </aside>
 
-      {/* Main area */}
       <div className="flex-1 flex flex-col overflow-hidden">
-        {/* Topbar */}
+
         <header className="h-[52px] bg-white border-b border-gray-200 flex items-center px-6 gap-4 flex-shrink-0">
           <div className="flex items-center gap-2 text-[#1B8F3D] font-bold text-[15px]">
             <BookOpen size={17} />

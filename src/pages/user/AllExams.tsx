@@ -4,24 +4,24 @@ import { examsApi, examResultsApi } from '../../api/services';
 import UserLayout from '../../layouts/UserLayout';
 import { Clock, FileText, Search, LayoutGrid, CheckCircle2 } from 'lucide-react';
 
-interface Exam { 
-  examId: number; 
-  title: string; 
-  description: string; 
-  category: string; 
-  level: string; 
-  timeLimit: number; 
-  totalScore: number; 
-  status: string; 
+interface Exam {
+  examId: number;
+  title: string;
+  description: string;
+  category: string;
+  level: string;
+  timeLimit: number;
+  totalScore: number;
+  status: string;
   createdAt: string;
 }
 
-interface HistoryItem { 
-  resultId: number; 
-  examId: number; 
-  status: string; 
-  score: number; 
-  maxScore: number; 
+interface HistoryItem {
+  resultId: number;
+  examId: number;
+  status: string;
+  score: number;
+  maxScore: number;
 }
 
 const AllExams: React.FC = () => {
@@ -36,7 +36,7 @@ const AllExams: React.FC = () => {
     const fetchData = async () => {
       try {
         const [examsRes, historyRes] = await Promise.all([
-          examsApi.getAll(), 
+          examsApi.getAll(),
           examResultsApi.getHistory()
         ]);
         const sorted = (examsRes.data as Exam[]).sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
@@ -78,26 +78,26 @@ const AllExams: React.FC = () => {
   };
 
   const categories = Array.from(new Set(exams.map(e => e.category)));
-  
-  const filteredExams = exams.filter(e => 
-    e.title.toLowerCase().includes(search.toLowerCase()) || 
+
+  const filteredExams = exams.filter(e =>
+    e.title.toLowerCase().includes(search.toLowerCase()) ||
     e.category.toLowerCase().includes(search.toLowerCase())
   );
 
   return (
     <UserLayout>
       <div className="flex flex-col gap-8">
-        {/* Header */}
+
         <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div>
             <h1 className="text-2xl font-black text-gray-900">Tất cả đề thi</h1>
             <p className="text-sm text-gray-500 mt-1">Khám phá và tham gia các bài thi theo từng chủ đề.</p>
           </div>
-          
+
           <div className="relative w-full md:w-80">
             <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-            <input 
-              type="text" 
+            <input
+              type="text"
               placeholder="Tìm kiếm đề thi..."
               value={search}
               onChange={e => setSearch(e.target.value)}
@@ -145,7 +145,7 @@ const AllExams: React.FC = () => {
                       const isInProgress = attempt?.status === 'In_Progress';
 
                       return (
-                        <div 
+                        <div
                           key={exam.examId}
                           id={`exam-${exam.examId}`}
                           onClick={() => handleStart(exam.examId)}
@@ -153,8 +153,8 @@ const AllExams: React.FC = () => {
                         >
                           <div className="flex items-start justify-between">
                             <div className={`w-12 h-12 rounded-xl flex items-center justify-center transition-all ${
-                              isCompleted ? 'bg-green-100 text-green-600 shadow-inner' : 
-                              isInProgress ? 'bg-yellow-100 text-yellow-600 shadow-inner' : 
+                              isCompleted ? 'bg-green-100 text-green-600 shadow-inner' :
+                              isInProgress ? 'bg-yellow-100 text-yellow-600 shadow-inner' :
                               'bg-gray-50 text-[#1B8F3D] shadow-inner'
                             }`}>
                               <FileText size={24} />
@@ -183,7 +183,7 @@ const AllExams: React.FC = () => {
                             </div>
                           </div>
 
-                          <button 
+                          <button
                             onClick={(e) => { e.stopPropagation(); handleStart(exam.examId); }}
                             className={`w-full py-3 text-xs font-black rounded-xl transition-all uppercase tracking-widest ${
                               isCompleted ? 'bg-gray-50 text-gray-500 hover:bg-gray-100' :

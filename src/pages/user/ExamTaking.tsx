@@ -4,22 +4,22 @@ import { examsApi, examResultsApi } from '../../api/services';
 import { Clock, Send, ChevronLeft, ChevronRight, CheckCircle } from 'lucide-react';
 import { getImageUrl } from '../../utils/imageUrl';
 
-interface Question { 
-  questionId: number; 
-  content: string; 
-  optionA: string; 
-  optionB: string; 
-  optionC: string; 
-  optionD: string; 
+interface Question {
+  questionId: number;
+  content: string;
+  optionA: string;
+  optionB: string;
+  optionC: string;
+  optionD: string;
   orderIndex: number;
   imageUrl?: string;
 }
 
-interface ExamInfo { 
-  examId: number; 
-  title: string; 
-  description: string; 
-  timeLimit: number; 
+interface ExamInfo {
+  examId: number;
+  title: string;
+  description: string;
+  timeLimit: number;
   totalScore: number;
   category: string;
 }
@@ -42,7 +42,6 @@ const ExamTaking: React.FC = () => {
 
   useEffect(() => { answersRef.current = answers; }, [answers]);
 
-  // Auto-submit: không hỏi confirm, gọi khi hết giờ
   const autoSubmit = useCallback(async () => {
     if (submittingRef.current) return;
     submittingRef.current = true;
@@ -52,7 +51,7 @@ const ExamTaking: React.FC = () => {
     try {
       const payload = Object.entries(answersRef.current).map(([qId, opt]) => ({ questionId: Number(qId), selectedOption: opt }));
       await examResultsApi.submit(Number(resultId), payload);
-      // Chờ 2 giây để user thấy overlay rồi redirect
+
       setTimeout(() => navigate(`/user/result/${resultId}`), 2000);
     } catch (e) {
       console.error(e);
@@ -61,7 +60,6 @@ const ExamTaking: React.FC = () => {
     }
   }, [resultId, navigate]);
 
-  // Manual submit: hỏi confirm trước
   const handleSubmit = useCallback(async () => {
     if (submittingRef.current) return;
     if (!window.confirm('Bạn có chắc chắn muốn nộp bài?')) return;
@@ -88,19 +86,18 @@ const ExamTaking: React.FC = () => {
       setQuestions(data.questions);
       const seconds = (data.examInfo.timeLimit || 30) * 60;
       setTimeLeft(seconds);
-      // Lưu thời điểm kết thúc thực tế dựa vào đồng hồ thực
+
       endTimeRef.current = Date.now() + seconds * 1000;
     }).catch(console.error).finally(() => setLoading(false));
   }, [examId]);
 
-  // Ref để timer luôn gọi được autoSubmit mới nhất mà không cần restart effect
   const autoSubmitRef = useRef(autoSubmit);
   useEffect(() => { autoSubmitRef.current = autoSubmit; }, [autoSubmit]);
 
   const hasTime = timeLeft > 0;
   useEffect(() => {
     if (!hasTime) return;
-    // Dùng Date.now() để tính thời gian còn lại — không bị nhảnh hưởng bởi throttle của trình duyệt
+
     timerRef.current = setInterval(() => {
       const remaining = Math.round((endTimeRef.current - Date.now()) / 1000);
       if (remaining <= 0) {
@@ -110,11 +107,10 @@ const ExamTaking: React.FC = () => {
       } else {
         setTimeLeft(remaining);
       }
-    }, 500); // 500ms để nhạy hơn khi quay lại tab
+    }, 500);
     return () => clearInterval(timerRef.current!);
   }, [hasTime]);
 
-  // Sync ngay khi quay lại tab (visibilitychange)
   useEffect(() => {
     const handleVisibility = () => {
       if (document.visibilityState === 'visible' && endTimeRef.current > 0) {
@@ -157,7 +153,7 @@ const ExamTaking: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-[#f8faf9] font-sans text-gray-900 relative">
-      {/* Overlay hết giờ */}
+
       {timeExpired && (
         <div className="fixed inset-0 z-[999] bg-black/70 backdrop-blur-sm flex items-center justify-center">
           <div className="bg-white rounded-3xl p-10 flex flex-col items-center gap-5 shadow-2xl text-center max-w-sm mx-4 animate-bounce-in">
@@ -174,7 +170,7 @@ const ExamTaking: React.FC = () => {
           </div>
         </div>
       )}
-      {/* Top Navbar */}
+
       <nav className="h-16 bg-white border-b border-gray-200 sticky top-0 z-50 px-8 flex items-center justify-between shadow-sm">
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 bg-[#1B8F3D] rounded-lg flex items-center justify-center">
@@ -191,9 +187,9 @@ const ExamTaking: React.FC = () => {
       </nav>
 
       <div className="max-w-[1400px] mx-auto px-8 py-8 flex gap-8">
-        {/* Main Content */}
+
         <div className="flex-1 flex flex-col gap-8">
-          {/* Header */}
+
           <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm">
             <h1 className="text-3xl font-black text-gray-900 mb-1">{exam?.title}</h1>
             <p className="text-sm font-semibold text-gray-400 flex items-center gap-2 uppercase tracking-wide">
@@ -201,13 +197,12 @@ const ExamTaking: React.FC = () => {
             </p>
           </div>
 
-          {/* Questions List */}
           <div className="flex flex-col gap-6">
             {questions.map((q, idx) => {
               const selected = answers[q.questionId];
               return (
-                <div 
-                  key={q.questionId} 
+                <div
+                  key={q.questionId}
                   ref={el => { questionRefs.current[idx] = el; }}
                   className={`bg-white rounded-2xl border transition-all duration-300 p-8 ${
                     currentQ === idx ? 'border-[#1B8F3D] shadow-xl shadow-[#1B8F3D]/5 scale-[1.01]' : 'border-gray-200 shadow-sm'
@@ -238,14 +233,14 @@ const ExamTaking: React.FC = () => {
                               key={opt}
                               onClick={() => setAnswers(prev => ({ ...prev, [q.questionId]: opt }))}
                               className={`group flex items-center gap-4 px-5 py-4 rounded-xl border-2 transition-all text-left ${
-                                isSelected 
-                                  ? 'border-[#1B8F3D] bg-green-50/50' 
+                                isSelected
+                                  ? 'border-[#1B8F3D] bg-green-50/50'
                                   : 'border-gray-100 hover:border-[#1B8F3D]/30 hover:bg-gray-50'
                               }`}
                             >
                               <div className={`w-8 h-8 rounded-full border-2 flex items-center justify-center text-xs font-black transition-all ${
-                                isSelected 
-                                  ? 'bg-[#1B8F3D] border-[#1B8F3D] text-white shadow-lg shadow-[#1B8F3D]/20' 
+                                isSelected
+                                  ? 'bg-[#1B8F3D] border-[#1B8F3D] text-white shadow-lg shadow-[#1B8F3D]/20'
                                   : 'bg-white border-gray-200 text-gray-400 group-hover:border-[#1B8F3D] group-hover:text-[#1B8F3D]'
                               }`}>
                                 {opt}
@@ -264,9 +259,8 @@ const ExamTaking: React.FC = () => {
             })}
           </div>
 
-          {/* Navigation */}
           <div className="flex justify-between items-center py-6">
-            <button 
+            <button
               onClick={() => scrollToQ(Math.max(0, currentQ - 1))}
               disabled={currentQ === 0}
               className="flex items-center gap-2 px-6 py-3 rounded-xl border-2 border-gray-200 bg-white text-sm font-bold text-gray-500 hover:border-[#1B8F3D] hover:text-[#1B8F3D] transition-all disabled:opacity-30 disabled:grayscale cursor-pointer"
@@ -276,7 +270,7 @@ const ExamTaking: React.FC = () => {
             <div className="text-xs font-bold text-gray-400 tracking-widest uppercase">
               Câu hỏi {currentQ + 1} trên {questions.length}
             </div>
-            <button 
+            <button
               onClick={() => scrollToQ(Math.min(questions.length - 1, currentQ + 1))}
               disabled={currentQ === questions.length - 1}
               className="flex items-center gap-2 px-6 py-3 rounded-xl bg-[#1B8F3D] text-white text-sm font-bold shadow-lg shadow-[#1B8F3D]/20 hover:bg-[#146c2e] hover:scale-105 transition-all disabled:opacity-30 cursor-pointer"
@@ -286,9 +280,8 @@ const ExamTaking: React.FC = () => {
           </div>
         </div>
 
-        {/* Sidebar */}
         <aside className="w-[340px] flex flex-col gap-6 sticky top-24 h-fit">
-          {/* Timer Card */}
+
           <div className={`bg-white p-7 rounded-2xl border-2 shadow-sm text-center ${isLowTime ? 'border-red-400 animate-pulse' : 'border-gray-200'}`}>
             <div className="flex items-center justify-center gap-2 text-xs font-black text-gray-400 uppercase tracking-widest mb-3">
               <Clock size={14} className={isLowTime ? 'text-red-500' : ''} /> Thời gian còn lại
@@ -297,14 +290,13 @@ const ExamTaking: React.FC = () => {
               {formatTime(timeLeft)}
             </div>
             <div className="mt-5 h-2 bg-gray-100 rounded-full overflow-hidden">
-              <div 
-                className={`h-full rounded-full transition-all duration-1000 ${isLowTime ? 'bg-red-500' : 'bg-[#1B8F3D]'}`} 
-                style={{ width: `${(timeLeft / (exam?.timeLimit ? exam.timeLimit * 60 : 1)) * 100}%` }} 
+              <div
+                className={`h-full rounded-full transition-all duration-1000 ${isLowTime ? 'bg-red-500' : 'bg-[#1B8F3D]'}`}
+                style={{ width: `${(timeLeft / (exam?.timeLimit ? exam.timeLimit * 60 : 1)) * 100}%` }}
               />
             </div>
           </div>
 
-          {/* Question Grid Card */}
           <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm">
             <div className="flex justify-between items-center mb-5">
               <h4 className="text-sm font-black text-gray-800 uppercase tracking-wider">Danh sách câu hỏi</h4>
@@ -319,8 +311,8 @@ const ExamTaking: React.FC = () => {
                     key={q.questionId}
                     onClick={() => scrollToQ(idx)}
                     className={`aspect-square rounded-lg text-xs font-bold transition-all border-2 ${
-                      isAnswered 
-                        ? 'bg-[#1B8F3D] border-[#1B8F3D] text-white shadow-md shadow-[#1B8F3D]/20' 
+                      isAnswered
+                        ? 'bg-[#1B8F3D] border-[#1B8F3D] text-white shadow-md shadow-[#1B8F3D]/20'
                         : isActive
                           ? 'border-[#1B8F3D] text-[#1B8F3D] bg-green-50'
                           : 'border-gray-100 text-gray-400 bg-white hover:border-gray-300'
@@ -344,7 +336,6 @@ const ExamTaking: React.FC = () => {
             </div>
           </div>
 
-          {/* Progress Card */}
           <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm">
             <h4 className="text-sm font-black text-gray-800 uppercase tracking-wider mb-4">Tiến độ tổng quan</h4>
             <div className="flex justify-between text-xs font-bold mb-2">
@@ -352,9 +343,9 @@ const ExamTaking: React.FC = () => {
               <span className="text-[#1B8F3D]">{progressPct}%</span>
             </div>
             <div className="h-2 bg-gray-100 rounded-full overflow-hidden mb-5">
-              <div 
-                className="h-full bg-[#1B8F3D] rounded-full transition-all duration-500" 
-                style={{ width: `${progressPct}%` }} 
+              <div
+                className="h-full bg-[#1B8F3D] rounded-full transition-all duration-500"
+                style={{ width: `${progressPct}%` }}
               />
             </div>
             <div className="space-y-3">
@@ -369,7 +360,6 @@ const ExamTaking: React.FC = () => {
             </div>
           </div>
 
-          {/* Submit Button */}
           <button
             onClick={handleSubmit}
             disabled={submitting}

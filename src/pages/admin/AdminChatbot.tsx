@@ -32,7 +32,7 @@ interface Msg {
   role: 'user' | 'ai';
   text: string;
   hasDraft?: boolean;
-  attachedFileName?: string;  // file attachment shown as card in bubble
+  attachedFileName?: string;
 }
 
 interface ChatbotResponseDraft {
@@ -57,7 +57,7 @@ interface AttachedFile {
   name: string;
   content: string;
   charCount: number;
-  imageUrls?: string[];  // Ảnh upload lên Cloudinary
+  imageUrls?: string[];
 }
 
 const repairTruncatedJson = (json: string) => {
@@ -291,7 +291,6 @@ const AdminChatbot: React.FC = () => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-
   const handleFileUpload = async (file: File) => {
     const ext = file.name.split('.').pop()?.toLowerCase();
     if (ext !== 'pdf' && ext !== 'docx') {
@@ -320,7 +319,7 @@ const AdminChatbot: React.FC = () => {
     const userMsg = input.trim();
     const lowerUserMsg = userMsg.toLowerCase();
     const isAddQuestionsRequest = lowerUserMsg.includes('thêm câu hỏi') || lowerUserMsg.includes('bổ sung') || lowerUserMsg.includes('tạo thêm');
-    
+
     setInput('');
     setMessages(prev => [...prev, { role: 'user', text: userMsg, attachedFileName: attachedFile?.name }]);
     setSending(true);
@@ -330,7 +329,7 @@ const AdminChatbot: React.FC = () => {
       // Clear attached file after sending
       setAttachedFile(null);
       const data = res.data;
-      
+
       const draftData = buildDraftFromResponse(data);
       const aiText = normalizeAssistantText(data.message ?? data.response ?? data);
 
@@ -346,7 +345,7 @@ const AdminChatbot: React.FC = () => {
           ? mergeQuestionLists(currentQuestions, draftData.questions)
           : draftData.questions;
         const isModification = isAddQuestionsRequest || lowerUserMsg.includes('sửa') || lowerUserMsg.includes('thay đổi') || lowerUserMsg.includes('đổi');
-        
+
         // Nếu đây là yêu cầu tạo đề mới hoàn toàn (không phải sửa/thêm câu hỏi),
         // reset dbExamId để khi lưu sẽ tạo thành 1 record mới trong DB.
         if (!isModification) {
@@ -391,7 +390,6 @@ const AdminChatbot: React.FC = () => {
       setSending(false);
     }
   };
-
 
   const handleViewDraft = () => {
     draftRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -573,8 +571,8 @@ const AdminChatbot: React.FC = () => {
 
           {toast && (
             <div className={`absolute top-20 left-1/2 -translate-x-1/2 z-50 px-4 py-2.5 rounded-lg shadow-lg border text-[13px] font-medium flex items-center gap-2 max-w-[85%] text-center transition-all duration-300 ${
-              toast.type === 'error' ? 'bg-red-50 text-red-600 border-red-100' : 
-              toast.type === 'success' ? 'bg-green-50 text-[#1B8F3D] border-green-100' : 
+              toast.type === 'error' ? 'bg-red-50 text-red-600 border-red-100' :
+              toast.type === 'success' ? 'bg-green-50 text-[#1B8F3D] border-green-100' :
               'bg-blue-50 text-blue-600 border-blue-100'
             }`}>
               {toast.message}
@@ -672,7 +670,6 @@ const AdminChatbot: React.FC = () => {
                 </div>
               </>
             )}
-
 
             <div className="input-wrapper-chat">
               <input
@@ -853,7 +850,6 @@ const AdminChatbot: React.FC = () => {
                     )}
                   </div>
                 ))}
-
 
                 {draftExam.progress < 100 && (
                   <div className="flex items-center justify-center py-4 gap-2 text-gray-400">

@@ -46,7 +46,6 @@ const ExamResult: React.FC = () => {
           <ArrowLeft size={14} /> Quay lại lịch sử
         </button>
 
-        {/* Score card */}
         <div className="bg-white border border-gray-200 rounded-2xl p-10 flex flex-col items-center gap-3 text-center shadow-md">
           <div className={`w-20 h-20 rounded-full flex items-center justify-center ${passed ? 'bg-green-50' : 'bg-red-50'}`}>
             <Trophy size={36} className={passed ? 'text-green-600' : 'text-red-500'} />
@@ -65,7 +64,6 @@ const ExamResult: React.FC = () => {
           </div>
         </div>
 
-        {/* Answer review */}
         <h3 className="text-lg font-bold text-gray-900">Xem lại bài làm</h3>
         <div className="flex flex-col gap-4">
           {answers.map((a, idx) => (

@@ -31,10 +31,10 @@ const UserLayout = ({ children }: { children: ReactNode }) => {
       const res = await notificationsApi.getAll();
       setNotifications(res.data);
       setNotificationsUnavailable(false);
-      
+
       const lastCheckedTimeStr = localStorage.getItem('lastCheckedNotificationTime') || '1970-01-01T00:00:00.000Z';
       const lastCheckedTime = new Date(lastCheckedTimeStr);
-      
+
       const unread = res.data.filter((n: NotificationItem) => new Date(n.createdAt) > lastCheckedTime).length;
       setUnreadCount(unread);
     } catch (e) {
@@ -64,7 +64,7 @@ const UserLayout = ({ children }: { children: ReactNode }) => {
 
   const handleToggleDropdown = () => {
     if (!isOpen) {
-      // Clear unread count locally when opening dropdown
+
       localStorage.setItem('lastCheckedNotificationTime', new Date().toISOString());
       setUnreadCount(0);
       void fetchNotifications();
@@ -104,7 +104,7 @@ const UserLayout = ({ children }: { children: ReactNode }) => {
 
   return (
     <div className="flex flex-col min-h-screen bg-gray-50 font-sans">
-      {/* Topbar */}
+
       <header className="h-14 bg-white border-b border-gray-200 flex items-center px-7 gap-8 sticky top-0 z-50 shadow-sm">
         <div className="flex items-center gap-2 text-[#1B8F3D] font-bold text-lg whitespace-nowrap">
           <BookOpen size={22} />
@@ -132,9 +132,9 @@ const UserLayout = ({ children }: { children: ReactNode }) => {
           ))}
         </nav>
         <div className="flex items-center gap-2 ml-auto">
-          {/* Notification System */}
+
           <div className="relative" ref={dropdownRef}>
-            <button 
+            <button
               onClick={handleToggleDropdown}
               className="relative w-9 h-9 rounded-lg border border-gray-200 flex items-center justify-center text-gray-500 hover:text-[#1B8F3D] hover:bg-gray-50 transition-colors"
             >
@@ -146,10 +146,9 @@ const UserLayout = ({ children }: { children: ReactNode }) => {
               )}
             </button>
 
-            {/* Dropdown Menu */}
             {isOpen && (
               <div className="absolute right-0 mt-2 w-80 bg-white border border-gray-100 rounded-2xl shadow-xl z-50 overflow-hidden">
-                {/* Header */}
+
                 <div className="px-4 py-3 border-b border-gray-100 bg-gray-50 flex items-center justify-between">
                   <h4 className="text-xs font-bold text-gray-700 uppercase tracking-wider">Thông báo</h4>
                   {unreadCount > 0 && (
@@ -162,7 +161,6 @@ const UserLayout = ({ children }: { children: ReactNode }) => {
                   )}
                 </div>
 
-                {/* List Items */}
                 <div className="max-h-80 overflow-y-auto divide-y divide-gray-50 scrollbar-thin">
                   {notificationsUnavailable && notifications.length === 0 ? (
                     <div className="px-4 py-8 text-center text-gray-400 text-xs font-medium">
@@ -200,7 +198,6 @@ const UserLayout = ({ children }: { children: ReactNode }) => {
                   )}
                 </div>
 
-                {/* Footer */}
                 <div className="px-4 py-2 border-t border-gray-100 bg-gray-50 text-center">
                   <button
                     onClick={() => { setIsOpen(false); navigate('/user/exams'); }}
@@ -233,9 +230,8 @@ const UserLayout = ({ children }: { children: ReactNode }) => {
         {children}
       </main>
 
-      {/* NHÚNG GIA SƯ AI VÀO MỌI TRANG CỦA USER */}
       <UserChatbot />
-      
+
     </div>
   );
 };

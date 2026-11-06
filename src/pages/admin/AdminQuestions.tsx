@@ -53,7 +53,6 @@ const AdminQuestions: React.FC = () => {
     setCurrentPage(1);
   }, [search, selectedCat, selectedLevel]);
 
-  // Import vision states
   const [showImportModal, setShowImportModal] = useState(false);
   const [importing, setImporting] = useState(false);
   const [importResult, setImportResult] = useState<ParseResult | null>(null);
@@ -66,7 +65,6 @@ const AdminQuestions: React.FC = () => {
   const [checkedQuestions, setCheckedQuestions] = useState<Set<number>>(new Set());
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Export Excel states
   const [showExportModal, setShowExportModal] = useState(false);
   const [exportAll, setExportAll] = useState(true);
   const [exportCat, setExportCat] = useState('All');
@@ -143,7 +141,6 @@ const AdminQuestions: React.FC = () => {
     setShowModal(true);
   };
 
-
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const f = e.target.files?.[0] ?? null;
     setSelectedFile(f);
@@ -171,7 +168,7 @@ const AdminQuestions: React.FC = () => {
       fd.append('file', selectedFile);
       const res = await examsApi.parseVisionSmart(fd);
       setImportResult(res.data);
-      // Mặc định chọn tất cả câu hỏi
+
       setCheckedQuestions(new Set(res.data.questions.map((_: ParsedQuestion, i: number) => i)));
     } catch (e: any) {
       setImportError(e.response?.data?.message ?? 'Lỗi kết nối tới server. Vui lòng thử lại.');
@@ -242,20 +239,19 @@ const AdminQuestions: React.FC = () => {
       } else {
         url += `category=All&level=All`;
       }
-      // append cache buster just in case
+
       url += `&t=${new Date().getTime()}`;
-      
+
       const res = await fetch(url, {
         headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
       });
-      
+
       if (!res.ok) throw new Error('Network response was not ok');
       const blob = await res.blob();
       const downloadUrl = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = downloadUrl;
 
-      // Custom file name based on filters
       let fileName = 'NganHangCauHoi.xlsx';
       if (!exportAll) {
         const parts = [];
@@ -308,7 +304,7 @@ const AdminQuestions: React.FC = () => {
   return (
     <AdminLayout>
       <div className="flex flex-col gap-6">
-        {/* Header */}
+
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-black text-gray-900">Ngân hàng câu hỏi</h1>
@@ -333,7 +329,6 @@ const AdminQuestions: React.FC = () => {
           </div>
         </div>
 
-        {/* Filters */}
         <div className="flex flex-col gap-4">
           <div className="bg-white border border-gray-200 rounded-2xl p-4 flex items-center gap-4 shadow-sm">
             <div className="relative flex-1">
@@ -371,7 +366,6 @@ const AdminQuestions: React.FC = () => {
           </div>
         </div>
 
-        {/* Question List */}
         <div className="grid grid-cols-1 gap-4">
           {loading ? (
             <div className="text-center py-20 text-gray-400">Đang tải dữ liệu...</div>
@@ -394,7 +388,7 @@ const AdminQuestions: React.FC = () => {
                     )}
                   </div>
                   <h3 className="text-gray-900 font-bold leading-relaxed">{q.content}</h3>
-                  {/* Hiển thị ảnh đính kèm câu hỏi (nếu có) */}
+
                   {q.imageUrl && (
                     <div className="mt-3">
                       <img
@@ -406,7 +400,6 @@ const AdminQuestions: React.FC = () => {
                     </div>
                   )}
 
-                  {/* Đáp án */}
                   {(q.optionA || q.optionB) && (
                     <div className="mt-3 grid grid-cols-2 gap-1.5">
                       {[
@@ -439,7 +432,7 @@ const AdminQuestions: React.FC = () => {
               </div>
             </div>
               ))}
-              
+
               {totalPages > 1 && (
                 <div className="flex justify-center items-center gap-6 mt-4 pt-4 border-t border-gray-100">
                   <button
@@ -465,7 +458,6 @@ const AdminQuestions: React.FC = () => {
           )}
         </div>
 
-        {/* ── MODAL: Tạo / Sửa câu hỏi ──────────────────────────────────────── */}
         {showModal && (
           <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-6">
             <div className="bg-white rounded-3xl w-full max-w-2xl overflow-hidden shadow-2xl max-h-[90vh] flex flex-col">
@@ -489,14 +481,13 @@ const AdminQuestions: React.FC = () => {
                   />
                 </div>
 
-                {/* Ảnh đính kèm câu hỏi */}
                 <div>
                   <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2 flex items-center gap-1.5">
                     <Image size={12} /> Ảnh đính kèm (Tùy chọn)
                   </label>
 
                   {form.imageUrl ? (
-                    /* Đang có ảnh — hiển thị preview + nút thay/xóa */
+
                     <div className="border border-violet-200 rounded-2xl overflow-hidden bg-gray-50">
                       <div className="flex items-center justify-center p-4">
                         <img
@@ -522,7 +513,7 @@ const AdminQuestions: React.FC = () => {
                               });
                               const data = await res.json();
                               if (data.imageUrl) setForm(f => ({ ...f, imageUrl: data.imageUrl }));
-                            } catch { /* giữ ảnh cũ */ }
+                            } catch {  }
                           }} />
                         </label>
                         <button type="button" onClick={() => setForm({ ...form, imageUrl: '' })}
@@ -532,7 +523,7 @@ const AdminQuestions: React.FC = () => {
                       </div>
                     </div>
                   ) : (
-                    /* Chưa có ảnh — vùng kéo thả / chọn file */
+
                     <label className="flex flex-col items-center justify-center gap-2 w-full py-8 border-2 border-dashed border-gray-200 rounded-2xl bg-gray-50 hover:border-violet-300 hover:bg-violet-50/30 cursor-pointer transition-all group">
                       <div className="w-10 h-10 rounded-xl bg-gray-100 group-hover:bg-violet-100 flex items-center justify-center transition-colors">
                         <Upload size={18} className="text-gray-400 group-hover:text-violet-500 transition-colors" />
@@ -554,12 +545,11 @@ const AdminQuestions: React.FC = () => {
                           });
                           const data = await res.json();
                           if (data.imageUrl) setForm(f => ({ ...f, imageUrl: data.imageUrl }));
-                        } catch { /* bỏ qua lỗi */ }
+                        } catch {  }
                       }} />
                     </label>
                   )}
                 </div>
-
 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
@@ -637,11 +627,10 @@ const AdminQuestions: React.FC = () => {
           </div>
         )}
 
-        {/* ── MODAL: Import từ file PDF/Word ──────────────────────────────────── */}
         {showImportModal && (
           <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
             <div className="bg-white rounded-3xl w-full max-w-3xl max-h-[92vh] flex flex-col shadow-2xl overflow-hidden">
-              {/* Header */}
+
               <div className="px-6 py-5 border-b border-gray-100 flex items-center justify-between shrink-0 bg-gradient-to-r from-violet-50 to-white">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-xl bg-violet-100 text-violet-600 flex items-center justify-center">
@@ -656,7 +645,7 @@ const AdminQuestions: React.FC = () => {
               </div>
 
               <div className="flex-1 overflow-y-auto p-6 space-y-5">
-                {/* Upload zone */}
+
                 {!importResult && (
                   <>
                     <div
@@ -688,7 +677,6 @@ const AdminQuestions: React.FC = () => {
                       )}
                     </div>
 
-                    {/* Metadata */}
                     <div className="grid grid-cols-2 gap-4">
                       <div>
                         <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Danh mục cho câu hỏi</label>
@@ -707,7 +695,6 @@ const AdminQuestions: React.FC = () => {
                       </div>
                     </div>
 
-                    {/* Error */}
                     {importError && (
                       <div className="flex items-start gap-3 p-4 bg-red-50 border border-red-200 rounded-2xl text-red-700 text-sm">
                         <AlertCircle size={18} className="shrink-0 mt-0.5" />
@@ -715,7 +702,6 @@ const AdminQuestions: React.FC = () => {
                       </div>
                     )}
 
-                    {/* Scan button */}
                     <button
                       onClick={handleImportScan}
                       disabled={!selectedFile || importing}
@@ -730,10 +716,9 @@ const AdminQuestions: React.FC = () => {
                   </>
                 )}
 
-                {/* Results */}
                 {importResult && (
                   <div className="space-y-4">
-                    {/* Summary bar */}
+
                     <div className="flex items-center gap-4 p-4 bg-green-50 border border-green-200 rounded-2xl">
                       <Check size={20} className="text-green-600 shrink-0" />
                       <div className="flex-1">
@@ -749,7 +734,6 @@ const AdminQuestions: React.FC = () => {
                       >Quét lại</button>
                     </div>
 
-                    {/* Select all toggle */}
                     <div className="flex items-center gap-3">
                       <label className="flex items-center gap-2 cursor-pointer text-sm font-bold text-gray-600">
                         <input
@@ -768,7 +752,6 @@ const AdminQuestions: React.FC = () => {
                       </label>
                     </div>
 
-                    {/* Question cards */}
                     <div className="space-y-3">
                       {importResult.questions.map((q, idx) => (
                         <div key={idx}
@@ -803,10 +786,9 @@ const AdminQuestions: React.FC = () => {
                             </button>
                           </div>
 
-                          {/* Expanded: ảnh + đáp án */}
                           {expandedQuestions.has(idx) && (
                             <div className="px-4 pb-4 pt-0 border-t border-gray-100 space-y-3">
-                              {/* Ảnh đính kèm */}
+
                               {q.imageUrl && (
                                 <div className="mt-3">
                                   <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2 flex items-center gap-1">
@@ -823,7 +805,7 @@ const AdminQuestions: React.FC = () => {
                                   />
                                 </div>
                               )}
-                              {/* Danh sách đáp án */}
+
                               <div className="grid grid-cols-1 gap-1.5">
                                 {(q.options ?? []).map((opt, oi) => (
                                   <div key={oi}
@@ -843,7 +825,6 @@ const AdminQuestions: React.FC = () => {
                 )}
               </div>
 
-              {/* Footer */}
               {importResult && (
                 <div className="px-6 py-4 border-t border-gray-100 shrink-0 flex gap-3 bg-gray-50/50">
                   <button onClick={() => setShowImportModal(false)}
@@ -865,7 +846,6 @@ const AdminQuestions: React.FC = () => {
           </div>
         )}
 
-        {/* ── MODAL: Export Excel ──────────────────────────────────── */}
         {showExportModal && (
           <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-6">
             <div className="bg-white rounded-3xl w-full max-w-md overflow-hidden shadow-2xl flex flex-col">

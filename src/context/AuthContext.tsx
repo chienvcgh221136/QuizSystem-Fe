@@ -42,10 +42,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const params = new URLSearchParams(window.location.search);
     const urlToken = params.get('token');
     const isEmbed = params.get('embed');
-    
+
     if (urlToken) {
       localStorage.setItem('token', urlToken);
-      // Clean up URL but preserve embed if present
+
       const newUrl = isEmbed ? `${window.location.pathname}?embed=${isEmbed}` : window.location.pathname;
       window.history.replaceState({}, document.title, newUrl);
       return urlToken;
@@ -80,7 +80,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   );
 };
 
-// eslint-disable-next-line react-refresh/only-export-components
 export const useAuth = () => {
   const ctx = useContext(AuthContext);
   if (!ctx) throw new Error('useAuth must be inside AuthProvider');

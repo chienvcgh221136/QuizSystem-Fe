@@ -19,10 +19,9 @@ export const examsApi = {
   reorderQuestions: (examId: number, orderedQuestionIds: number[]) => api.put(`/Exams/${examId}/questions/reorder`, orderedQuestionIds),
   parseVisionSmart: (formData: FormData) => api.post('/Exams/parse-vision-smart', formData, {
     headers: { 'Content-Type': 'multipart/form-data' },
-    timeout: 300000, // 5 phút — Vision AI tốn thời gian
+    timeout: 300000,
   }),
 };
-
 
 export const usersApi = {
   getAll: () => api.get('/Users'),

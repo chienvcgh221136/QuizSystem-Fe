@@ -15,7 +15,6 @@ const UserDashboard: React.FC = () => {
   const [history, setHistory] = useState<HistoryItem[]>([]);
   const [loading, setLoading] = useState(true);
 
-
   useEffect(() => {
     let isMounted = true;
     const loadInitial = async () => {
@@ -45,14 +44,14 @@ const UserDashboard: React.FC = () => {
 
   const completedItems = history.filter(h => h.status === 'Submitted');
   const completed = completedItems.length;
-  const avgScore = completed > 0 
-    ? Math.round(completedItems.reduce((acc, h) => acc + ((h.score / h.maxScore) * 100), 0) / completed) 
+  const avgScore = completed > 0
+    ? Math.round(completedItems.reduce((acc, h) => acc + ((h.score / h.maxScore) * 100), 0) / completed)
     : 0;
 
   return (
     <UserLayout>
       <div className="flex flex-col gap-6">
-        {/* Header */}
+
         <div>
           <h1 className="text-3xl font-extrabold text-gray-900">
             Chào mừng quay trở lại, {user?.fullName?.split(' ').pop() ?? user?.username}.
@@ -60,7 +59,6 @@ const UserDashboard: React.FC = () => {
           <p className="text-gray-500 text-sm mt-1">Bạn có {exams.length} đề thi sẵn sàng trong tuần này.</p>
         </div>
 
-        {/* Hero Banner (Non-AI) */}
         <div className="bg-gradient-to-r from-[#0C451E] to-[#1B8F3D] rounded-2xl p-8 flex items-center gap-10 relative overflow-hidden shadow-xl">
           <div className="absolute w-72 h-72 rounded-full bg-white/5 right-52 -top-24" />
           <div className="flex-1 text-white relative z-10">
@@ -106,7 +104,6 @@ const UserDashboard: React.FC = () => {
           </div>
         </div>
 
-        {/* Exams grid */}
         <div className="flex items-center justify-between">
           <h3 className="text-lg font-bold text-gray-900">Đề thi sẵn có</h3>
           <button onClick={() => navigate('/user/exams')} className="flex items-center gap-1 text-sm text-[#1B8F3D] font-medium hover:underline">
@@ -126,15 +123,15 @@ const UserDashboard: React.FC = () => {
               const isInProgress = attempt?.status === 'In_Progress';
 
               return (
-                <div 
-                  key={exam.examId} 
+                <div
+                  key={exam.examId}
                   onClick={() => handleStart(exam.examId)}
                   className="bg-white border border-gray-200 rounded-xl p-4 flex flex-col gap-3 hover:shadow-md hover:-translate-y-0.5 transition-all cursor-pointer group"
                 >
                   <div className="flex items-center justify-between">
                     <div className={`w-10 h-10 rounded-lg flex items-center justify-center transition-colors ${
-                      isCompleted ? 'bg-green-100 text-green-600' : 
-                      isInProgress ? 'bg-yellow-100 text-yellow-600' : 
+                      isCompleted ? 'bg-green-100 text-green-600' :
+                      isInProgress ? 'bg-yellow-100 text-yellow-600' :
                       'bg-green-50 text-[#1B8F3D]'
                     }`}>
                       <FileText size={20} />
@@ -179,7 +176,6 @@ const UserDashboard: React.FC = () => {
           </div>
         )}
 
-        {/* Recent results */}
         {history.length > 0 && (
           <>
             <div className="flex items-center justify-between">

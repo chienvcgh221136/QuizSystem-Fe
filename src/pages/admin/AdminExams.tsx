@@ -320,7 +320,7 @@ const AdminExams: React.FC = () => {
                   </div>
                   ))}
                 </div>
-                
+
                 {totalPages > 1 && (
                   <div className="flex justify-center items-center gap-6 mt-6 pt-4 border-t border-gray-100">
                     <button
@@ -348,7 +348,6 @@ const AdminExams: React.FC = () => {
         </div>
       </div>
 
-      {/* Modal: Create / Edit Exam */}
       {showModal && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50" onClick={() => setShowModal(false)}>
           <div className="bg-white rounded-2xl p-7 w-[500px] max-h-[90vh] overflow-y-auto shadow-2xl" onClick={e => e.stopPropagation()}>
@@ -400,11 +399,10 @@ const AdminExams: React.FC = () => {
         </div>
       )}
 
-      {/* Modal: Manage Questions */}
       {managingExam && (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-3xl w-full max-w-5xl flex flex-col shadow-2xl" style={{ height: '90vh' }}>
-            {/* Header */}
+
             <div className="px-6 py-4 border-b border-gray-100 bg-gray-50/50 flex items-center justify-between shrink-0 rounded-t-3xl">
               <div>
                 <h3 className="text-lg font-black text-gray-900">Quản lý câu hỏi: {stripCreatedByAI(managingExam.title)}</h3>
@@ -417,7 +415,7 @@ const AdminExams: React.FC = () => {
             </div>
 
             <div className="grid grid-cols-2 flex-1 min-h-0">
-              {/* Left — Câu hỏi trong đề */}
+
               <div className="border-r border-gray-100 flex flex-col min-h-0">
                 <div className="px-4 py-3 bg-green-50/60 border-b border-green-100 shrink-0">
                   <div className="flex items-center justify-between mb-2">
@@ -476,7 +474,6 @@ const AdminExams: React.FC = () => {
                 </div>
               </div>
 
-              {/* Right — Ngân hàng câu hỏi */}
               <div className="flex flex-col min-h-0 bg-gray-50/30">
                 <div className="px-4 py-3 bg-blue-50/60 border-b border-blue-100 shrink-0">
                   <div className="flex items-center justify-between mb-2">

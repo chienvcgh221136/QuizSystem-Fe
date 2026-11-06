@@ -65,7 +65,6 @@ const AdminDashboard: React.FC = () => {
       <div className="flex flex-col gap-6">
         <h1 className="text-xl font-extrabold text-gray-900">Tổng quan vận hành</h1>
 
-        {/* Stats */}
         <div className="grid grid-cols-4 gap-4">
           {stats.map((s, i) => (
             <div key={i} className="bg-white border border-gray-200 rounded-xl p-4 flex items-center gap-3.5 shadow-sm">
@@ -80,7 +79,7 @@ const AdminDashboard: React.FC = () => {
         </div>
 
         <div className="grid grid-cols-[1fr_320px] gap-5">
-          {/* Activity table */}
+
           <div className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm">
             <h3 className="text-[15px] font-bold text-gray-900 mb-4">Hoạt động gần đây</h3>
             <table className="w-full text-sm">
@@ -115,9 +114,8 @@ const AdminDashboard: React.FC = () => {
             </table>
           </div>
 
-          {/* Right column */}
           <div className="flex flex-col gap-4">
-            {/* AI Insights */}
+
             <div className="bg-gradient-to-br from-[#0C451E] to-[#1B8F3D] rounded-xl p-5 text-white shadow-sm">
               <h3 className="text-sm font-bold mb-2">Gợi ý từ AI</h3>
               <p className="text-xs text-white/80 leading-relaxed mb-4">
@@ -128,7 +126,6 @@ const AdminDashboard: React.FC = () => {
               </button>
             </div>
 
-            {/* System health */}
             <div className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm">
               <h3 className="text-sm font-bold text-gray-900 mb-4">Trình trạng hệ thống</h3>
               {[['Thời gian hoạt động', 99.99, '99.99%'], ['Tải CPU/DB', 12, '12%']].map(([label, val, display]) => (

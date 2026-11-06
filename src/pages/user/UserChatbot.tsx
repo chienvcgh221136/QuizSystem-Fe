@@ -3,15 +3,14 @@ import { chatbotApi } from '../../api/services';
 import { Send, Bot, User as UserIcon, X, CheckCircle } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
-
 const UserChatbot: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState<{role: 'user' | 'ai', text: string}[]>(() => {
     const saved = sessionStorage.getItem('user_chat_messages');
     if (saved) {
-      try { 
+      try {
         const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed)) return parsed; 
+        if (Array.isArray(parsed)) return parsed;
       } catch (e) {}
     }
     return [{ role: 'ai', text: "Xin chào! Mình là Gia sư AI. Bạn cần hỗ trợ gì nào?" }];
@@ -43,23 +42,21 @@ const UserChatbot: React.FC = () => {
       setSending(false);
     }
   };
-// Đưa Markdown thành link và Card kết quả nếu có trong tin nhắn AI
+
   const renderMessageText = (text: string) => {
-    // 1. Tách chuỗi bằng mật mã [CARD_RESULT|id|title|category] hoặc [CARD_EXAM|id|title|category]
+
     const cardRegex = /\[(CARD_RESULT|CARD_EXAM)\|(.*?)\|(.*?)\|(.*?)\]/g;
     const parts = text.split(cardRegex);
 
-    // Nếu không có mật mã card, xử lý link markdown bình thường
     if (parts.length === 1) {
       return renderStandardLinks(text);
     }
 
     const elements = [];
     for (let i = 0; i < parts.length; i += 5) {
-      // In ra phần chữ bình thường (nếu có) trước cái card
+
       if (parts[i]) elements.push(renderStandardLinks(parts[i]));
 
-      // Vẽ Card nếu có dữ liệu
       if (i + 1 < parts.length) {
         const cardType = parts[i + 1];
         const id = parts[i + 2];
@@ -72,21 +69,19 @@ const UserChatbot: React.FC = () => {
         const badgeColor = isResult ? "bg-black/80" : "bg-orange-500/90";
 
         elements.push(
-          <Link 
-            key={`card-${i}`} 
-            to={linkTo} 
-            // 1. Hover card
+          <Link
+            key={`card-${i}`}
+            to={linkTo}
+
             className="block my-3 w-full border border-gray-100 rounded-xl overflow-hidden hover:shadow-xl hover:-translate-y-1 transition-all duration-300 bg-white group cursor-pointer"
           >
-            {/* Định dạng card */}
+
             <div className="w-full h-[100px] relative overflow-hidden">
-               
-               {/* 2. Hiệu ứng Background khi Hover */}
+
                <div className="absolute inset-0 bg-gradient-to-br from-green-600 to-[#125533] group-hover:scale-110 transition-transform duration-500 ease-out flex items-center justify-center">
                   <Bot size={56} className="text-white opacity-20 group-hover:opacity-30 transition-opacity duration-300" />
                </div>
-               
-               {/* 3. Lớp phủ đen & Nút mũi tên trượt từ dưới lên */}
+
                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/25 transition-colors duration-300 flex items-center justify-center">
                   <div className="bg-white text-[#1a7a4a] rounded-full p-2.5 opacity-0 group-hover:opacity-100 transform translate-y-4 group-hover:translate-y-0 transition-all duration-300 shadow-lg">
                      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -95,20 +90,17 @@ const UserChatbot: React.FC = () => {
                   </div>
                </div>
 
-               {/* Badge trạng thái */}
                <div className={`absolute bottom-2 right-2 ${badgeColor} text-white text-[10px] px-2 py-0.5 rounded-md font-medium backdrop-blur-sm border border-white/10 z-10`}>
                  {badgeText}
                </div>
             </div>
 
-            {/* Thông tin bên dưới */}
             <div className="p-3 flex gap-3 relative bg-white z-10">
-              {/* Avatar card*/}
+
               <div className="w-8 h-8 rounded-full bg-green-50 flex items-center justify-center flex-shrink-0 mt-0.5 text-[#1a7a4a] group-hover:bg-[#1a7a4a] group-hover:text-white transition-colors duration-300">
                  <CheckCircle size={16} />
               </div>
 
-              {/* Chi tiết nội dung */}
               <div className="flex-1">
                  <h4 className="font-bold text-gray-800 text-[13px] line-clamp-2 leading-snug group-hover:text-[#1a7a4a] transition-colors duration-300">
                     {title}
@@ -129,7 +121,6 @@ const UserChatbot: React.FC = () => {
     return <div>{elements}</div>;
   };
 
-  // Xử lý Link Markdown 
   const renderStandardLinks = (rawText: string) => {
     const parts = rawText.split(/\[([^\]]+)\]\(([^)]+)\)/g);
     if (parts.length === 1) return <span className="whitespace-pre-wrap">{rawText}</span>;
@@ -139,7 +130,7 @@ const UserChatbot: React.FC = () => {
       elements.push(<span key={i} className="whitespace-pre-wrap">{parts[i]}</span>);
       if (i + 1 < parts.length) {
         let toPath = parts[i + 2].trim();
-        
+
         if (!toPath.startsWith('/') && !toPath.startsWith('http')) {
           toPath = '/' + toPath;
         }
@@ -167,7 +158,7 @@ const UserChatbot: React.FC = () => {
   };
   return (
     <>
-      {/* 1. NÚT AI */}
+
       {!isOpen && (
         <button
           onClick={() => setIsOpen(true)}
@@ -180,11 +171,9 @@ const UserChatbot: React.FC = () => {
         </button>
       )}
 
-      {/* 2. KHUNG CHAT */}
       {isOpen && (
         <div className="fixed bottom-8 right-8 w-[40vw] h-[80vh] bg-white rounded-2xl shadow-2xl border border-gray-100 flex flex-col overflow-hidden z-50 animate-in slide-in-from-bottom-5 fade-in duration-200">
-          
-          {/* Header */}
+
           <div className="px-4 py-3 bg-[#1B8F3D] flex items-center justify-between text-white shadow-sm z-10">
             <div className="flex items-center gap-3">
               <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center">
@@ -198,7 +187,7 @@ const UserChatbot: React.FC = () => {
                 </div>
               </div>
             </div>
-            <button 
+            <button
               onClick={() => setIsOpen(false)}
               className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-white/20 transition-colors"
             >
@@ -206,7 +195,6 @@ const UserChatbot: React.FC = () => {
             </button>
           </div>
 
-          {/* Body */}
           <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-4 bg-gray-50/50">
             {messages.map((msg, i) => (
               <div key={i} className={`flex gap-2 max-w-[85%] ${msg.role === 'user' ? 'ml-auto flex-row-reverse' : ''}`}>
@@ -231,7 +219,6 @@ const UserChatbot: React.FC = () => {
             <div ref={bottomRef} />
           </div>
 
-          {/* Input Area */}
           <div className="p-3 bg-white border-t border-gray-100">
             <div className="flex items-center gap-2 bg-gray-50 p-1 rounded-full border border-gray-200 focus-within:border-[#1B8F3D] transition-colors">
               <input
